@@ -1,0 +1,458 @@
+/* --- Modal with Refined Liquid Glass --- */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes aurora-sheen {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.modal-content {
+  width: 90%;
+  max-width: 500px; /* Increased size for better media view */
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 20px rgba(139, 92, 246, 0.5); /* Menambahkan efek cahaya */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  
+  /* The Glass Base */
+  background: linear-gradient(150deg, rgba(50, 50, 60, 0.4), rgba(20, 20, 30, 0.7));
+  color: #fff;
+  animation: scaleUp 0.5s ease-out;
+  
+  /* Simple, clean border */
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px; /* More subtle radius */
+  
+  overflow: hidden; /* Crucial for pseudo-elements */
+}
+
+.modal-content.large {
+  max-width: 900px;
+}
+
+
+/* The Aurora Sheen Effect */
+.modal-content::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 150%;
+  height: 150%;
+  z-index: 0;
+  
+  background-image: 
+    radial-gradient(circle at 20% 20%, rgba(150, 180, 255, 0.1) 0%, transparent 40%),
+    radial-gradient(circle at 80% 30%, rgba(200, 150, 255, 0.1) 0%, transparent 45%);
+  
+  animation: aurora-sheen 20s linear infinite;
+}
+
+/* Ensure all direct children are on top of the sheen */
+.modal-header, .modal-body, .modal-footer {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
+
+.modal-header {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.source-toggle {
+    display: flex;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    padding: 4px;
+}
+
+.source-toggle button {
+    background: transparent;
+    border: none;
+    color: #a0aec0;
+    padding: 8px 16px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.source-toggle button.active {
+    background-color: rgba(139, 92, 246, 0.5);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+
+.modal-body {
+  padding: 2rem;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 2.2rem;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  color: #fff;
+  transform: rotate(180deg) scale(1.1);
+}
+
+/* Buttons and Inputs with Glass Feel */
+.modal-btn, .add-btn-modal, .update-btn-modal, .delete-btn-modal {
+  padding: 0.7rem 1.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #f0f0f0;
+  backdrop-filter: blur(10px);
+}
+
+.modal-btn:hover, .add-btn-modal:hover, .update-btn-modal:hover, .delete-btn-modal:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.vps-form-modal input, .form-group-modal input, select {
+  width: 100%;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  font-size: 0.9rem;
+  color: #fff;
+  background-color: rgba(0, 0, 0, 0.3);
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.vps-form-modal input:focus, .form-group-modal input:focus, select:focus {
+  outline: none;
+  border-color: rgba(139, 92, 246, 0.8);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.25);
+}
+
+hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  margin: 1.5rem 0;
+}
+
+/* Media Library Grid */
+.media-library-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 1rem;
+}
+
+.media-item {
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    background-color: rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+}
+
+.media-item:hover {
+    transform: scale(1.05);
+    border-color: rgba(139, 92, 246, 0.8);
+}
+
+.media-item.selected {
+    border-color: #a855f7; /* purple-500 */
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.6);
+}
+
+.media-item p {
+    margin: 0.5rem;
+    font-size: 0.8rem;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+/* Pixabay Search Results Grid */
+.pixabay-results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.pixabay-results-grid .media-item {
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    background-color: rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    aspect-ratio: 1 / 1; /* Make them square */
+}
+
+.pixabay-results-grid .media-item:hover {
+    transform: scale(1.05);
+    border-color: rgba(139, 92, 246, 0.8);
+}
+
+.pixabay-results-grid .media-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* SoundCloud Search Results */
+.soundcloud-results {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.soundcloud-track {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.soundcloud-track:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(139, 92, 246, 0.5);
+}
+
+.soundcloud-track .track-artwork {
+    width: 50px;
+    height: 50px;
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.soundcloud-track .track-info {
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.soundcloud-track .track-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0 0 0.25rem 0;
+}
+
+.soundcloud-track .track-meta {
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.soundcloud-track .download-btn {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.soundcloud-track .track-uploader {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+}
+
+/* VPS Management Panel Styles */
+.vps-management-container {
+    display: flex;
+    gap: 2rem;
+}
+
+.vps-panel {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1.5rem;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.vps-panel h4 {
+    margin-top: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+}
+
+.vps-list-modal {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.vps-list-modal li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.vps-list-modal li:last-child {
+    border-bottom: none;
+}
+
+/* Video Grid */
+.video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.video-grid-item {
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    background-color: rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+
+}
+
+.video-grid-item:hover {
+    transform: scale(1.05);
+    border-color: rgba(139, 92, 246, 0.8);
+
+}
+
+.lang-toggle {
+    display: flex;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 4px;
+}
+
+.lang-toggle button {
+    background: transparent;
+    border: none;
+    color: #a0aec0;
+    padding: 6px 12px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.lang-toggle button.active {
+    background-color: rgba(139, 92, 246, 0.5);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+.command-container {
+    display: flex;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.4);
+    border-radius: 8px;
+    padding: 0.5rem 0.5rem 0.5rem 1rem;
+    margin: 1rem 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.command-container pre {
+    flex-grow: 1;
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.command-container code {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9rem;
+}
+
+.copy-btn {
+    padding: 0.6rem 1rem;
+    margin-left: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #f0f0f0;
+}
+
+.copy-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+}

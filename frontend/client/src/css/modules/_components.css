@@ -1,0 +1,476 @@
+/* --- General Components --- */
+
+.hidden {
+    display: none !important;
+}
+
+/* --- Buttons --- */
+.control-btn {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s, transform 0.1s;
+    font-size: 14px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: var(--shadow-sm);
+}
+
+.control-btn:hover {
+    background-color: var(--primary-accent);
+    border-color: var(--primary-accent);
+    color: var(--bg-primary);
+}
+
+.control-btn:active {
+    transform: scale(0.98);
+    box-shadow: none;
+}
+
+.control-btn.cancel-btn {
+    background-color: transparent;
+    border-color: var(--text-secondary);
+    color: var(--text-secondary);
+}
+
+/* Call-to-action button style */
+.cta-btn {
+    width: 100%;
+    background-color: var(--primary-accent);
+    color: var(--bg-primary);
+    border: none;
+    padding: 12px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background-color 0.2s, transform 0.1s;
+    margin-top: auto; /* Pushes it to the bottom of the flex container */
+}
+
+.cta-btn:hover {
+    background-color: var(--primary-accent-hover);
+}
+
+.cta-btn:active {
+    transform: scale(0.98);
+}
+
+.control-btn.cancel-btn:hover {
+    background-color: var(--text-secondary);
+    border-color: var(--text-secondary);
+    color: var(--bg-primary);
+}
+.action-btn-secondary {
+    /* Inherits from control-btn but with smaller padding/font for compact cards */
+    padding: 6px 10px;
+    font-size: 13px;
+    gap: 6px;
+}
+
+/* --- Forms --- */
+.form-section {
+    margin-bottom: 20px;
+    padding: 20px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.form-section label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #d1d5db;
+}
+
+.form-section input[type="text"],
+.form-section input[type="number"],
+.form-section input[type="password"],
+.form-section input[type="datetime-local"],
+.form-section textarea,
+.form-section select {
+    width: 100%;
+    padding: 10px;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 6px;
+    color: #e5e7eb;
+    box-sizing: border-box;
+}
+
+.form-section input[type="range"] {
+    width: 100%;
+}
+
+.radio-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.radio-group input[type="radio"] {
+    margin-right: 10px;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+.form-row-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.form-row-flex label {
+    margin-bottom: 0;
+}
+
+.small-checkbox {
+    width: 36px !important;
+    height: 20px !important;
+}
+
+.small-checkbox span:before {
+    height: 12px !important;
+    width: 12px !important;
+}
+
+.small-checkbox input:checked + span:before {
+    transform: translateX(16px) !important;
+}
+
+/* --- Custom Select --- */
+.custom-select-wrapper {
+    position: relative;
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.custom-select {
+    background-color: #2c3e50;
+    border: 1px solid #34495e;
+    border-radius: 5px;
+    color: #ecf0f1;
+    cursor: pointer;
+}
+
+.custom-select__trigger {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+}
+
+.arrow {
+    border: solid #ecf0f1;
+    border-width: 0 2px 2px 0;
+    display: inline-block;
+    padding: 3px;
+    transform: rotate(45deg);
+    transition: transform 0.3s;
+}
+
+.custom-select.open .arrow {
+    transform: rotate(-135deg);
+}
+
+.custom-options {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: #34495e;
+    border: 1px solid #2c3e50;
+    border-radius: 0 0 5px 5px;
+    z-index: 100;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.custom-select.open .custom-options {
+    display: block;
+}
+
+.custom-option {
+    padding: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.custom-option:hover {
+    background-color: #4a6fa5;
+}
+
+.custom-option.selected {
+    background-color: #2980b9;
+}
+
+/* --- Source List --- */
+.source-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px;
+    position: relative; /* Needed for z-index to work */
+    z-index: 1; /* Ensure it's above other elements in the panel */
+}
+
+.source-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #374151;
+    border-radius: 5px;
+    margin-bottom: 8px;
+    cursor: grab;
+    color: #e5e7eb;
+    border: 1px solid transparent;
+    flex-shrink: 1; /* Allow items to shrink */
+    min-width: 0; /* Allow flex items to shrink below their content size */
+    flex-wrap: wrap; /* Allow content to wrap */
+}
+
+.source-item.selected {
+    border-color: #4f46e5;
+    background: #312e81;
+}
+
+.delete-source-btn {
+    background: none;
+    border: none;
+    color: #e5e7eb;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.source-controls {
+    padding: 10px;
+    border-top: 1px solid #374151;
+    position: relative;
+}
+
+#add-source-btn {
+    width: 100%;
+    padding: 8px;
+    background: #4f46e5;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+}
+
+.source-menu {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    background-color: #34495e;
+    border: 1px solid #2c3e50;
+    border-radius: 5px;
+    padding: 5px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.source-menu.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.source-menu a {
+    color: #ecf0f1;
+    text-decoration: none;
+    padding: 8px 12px;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+.source-menu a:hover {
+    background-color: #4a6fa5;
+}
+
+/* --- Properties Panel --- */
+.properties-content {
+    padding: 20px;
+    flex-grow: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 18px; /* Consistent gap between property items */
+}
+
+.prop-item {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr; /* Label and control columns */
+    align-items: center;
+    gap: 15px;
+}
+
+.prop-item label {
+    margin-bottom: 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-align: left;
+}
+
+/* General styling for inputs within the properties panel */
+.properties-content input[type="text"],
+.properties-content input[type="number"],
+.properties-content input[type="range"],
+.properties-content select,
+.properties-content textarea {
+    width: 100%;
+    padding: 8px 12px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    box-sizing: border-box;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.properties-content input[type="text"]:focus,
+.properties-content input[type="number"]:focus,
+.properties-content select:focus {
+    outline: none;
+    border-color: var(--primary-accent);
+}
+
+.prop-item .custom-checkbox {
+    justify-self: start; /* Align checkbox to the start of the grid cell */
+}
+
+.custom-checkbox {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.custom-checkbox input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.custom-checkbox span {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #374151;
+    transition: .4s;
+    border-radius: 24px;
+}
+
+.custom-checkbox span:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+.custom-checkbox input:checked + span {
+    background-color: #4f46e5;
+}
+
+.custom-checkbox input:checked + span:before {
+    transform: translateX(20px);
+}
+
+.transform-properties {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+/* --- Loading Overlay --- */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    display: none; /* Hidden by default */
+}
+
+.loading-spinner {
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #4f46e5;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+}
+
+.loading-text {
+    color: white;
+    margin-top: 20px;
+    font-size: 1.2em;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* --- Stat Card --- */
+.stat-card-body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+}
+
+.stat-card-body h3 {
+    margin: 0;
+    font-size: 16px;
+    color: var(--text-secondary);
+}
+
+.stat-card-body p {
+    margin: 0;
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--text-primary);
+}

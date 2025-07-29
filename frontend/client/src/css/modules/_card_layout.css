@@ -1,0 +1,436 @@
+/* === Stream Card (Item Card) - FINAL STYLES V3 === */
+.item-card {
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--bg-tertiary);
+    box-shadow: var(--shadow-md);
+}
+
+.item-card .card-thumbnail {
+    position: relative;
+    background-color: var(--bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 140px;
+}
+
+.item-card .thumbnail-header {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+}
+
+.item-card .thumbnail-header .status-badge {
+    flex-shrink: 0;
+}
+
+.item-card .thumbnail-footer {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+    padding: 10px;
+    border-bottom-left-radius: var(--radius-lg);
+    border-bottom-right-radius: var(--radius-lg);
+}
+
+.item-card .thumbnail-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary-inverted, #fff);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+}
+
+.item-card .stream-duration-live {
+    color: var(--danger-color);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+}
+
+.item-card .stream-thumbnail-icon {
+    font-size: 48px;
+    color: var(--text-secondary);
+    margin-top: 20px; /* Add some space from the header */
+}
+
+.item-card .card-content {
+    padding: 16px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.item-card .card-meta {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.item-card .youtube-stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    gap: 15px;
+}
+
+.item-card .youtube-stats .stats-group {
+    display: flex;
+    gap: 10px;
+}
+
+.item-card .youtube-stats .stream-duration {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.item-card .card-actions {
+    padding: 0 16px 16px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+/* === Liquid Glass Button Style === */
+.stream-card-button {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-md);
+    padding: 6px 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background 0.2s, border 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-decoration: none; /* For Link component */
+}
+
+.stream-card-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.stream-card-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.stream-card-button .fa-trash {
+    color: var(--danger-color);
+}
+
+.thumbnail-content {
+    position: relative;
+    width: 100%;
+    height: 180px; /* Or whatever the fixed height of your thumbnails is */
+    background-color: #222;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stream-preview-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.stream-thumbnail-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.stream-thumbnail-icon {
+    font-size: 4rem;
+    color: #444;
+}
+
+/* === Video Card Styles === */
+.video-card {
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--bg-tertiary);
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.video-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-xl);
+}
+
+.video-container {
+    position: relative;
+    width: 100%;
+    /* Aspect ratio is handled in _gallery_page.css for media-card-v2 */
+    background-color: #000;
+}
+
+.video-card.aspect-9-16 .video-container {
+    padding-top: 177.77%; /* 9:16 Aspect Ratio */
+}
+
+.video-card.aspect-other .video-container {
+    padding-top: 75%; /* 4:3 Aspect Ratio as a fallback */
+}
+
+.video-container video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 10px;
+    color: #fff;
+}
+
+.video-card.is-hovering .video-overlay {
+    opacity: 1;
+}
+
+.video-info-top,
+.video-info-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+}
+
+.video-duration {
+    background-color: rgba(0,0,0,0.6);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+}
+
+.video-size {
+    background-color: rgba(0,0,0,0.6);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+}
+
+.mute-btn {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.mute-btn:hover {
+    background: rgba(0,0,0,0.8);
+}
+
+.video-card-body {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.video-display-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0;
+}
+
+.video-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.selection-checkbox {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    z-index: 10;
+}
+
+/* === General Media Card V2 Styles === */
+.media-card-v2 .card-thumbnail {
+    position: relative;
+    width: 100%;
+    /* Aspect ratio is handled in _gallery_page.css for media-card-v2 */
+    background-color: #000;
+    overflow: hidden;
+}
+
+.media-card-v2 .card-thumbnail video,
+.media-card-v2 .card-thumbnail img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.media-card-v2 .video-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 10px;
+    color: #fff;
+}
+
+.media-card-v2:hover .video-overlay {
+    opacity: 1;
+}
+
+.media-card-v2 .video-info-top,
+.media-card-v2 .video-info-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+    width: 100%;
+}
+
+.media-card-v2 .video-duration,
+.media-card-v2 .video-size {
+    background-color: rgba(0,0,0,0.6);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+}
+
+.media-card-v2 .mute-btn {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    z-index: 5;
+}
+
+.media-card-v2 .mute-btn:hover {
+    background: rgba(0,0,0,0.8);
+}
+
+.media-card-v2 .card-actions-overlay {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 8px;
+    z-index: 5;
+}
+
+.media-card-v2 .card-actions-overlay button {
+    background: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.media-card-v2 .card-actions-overlay button:hover {
+    background: rgba(0,0,0,0.8);
+}
+
+
+.media-card-v2 .card-content {
+    padding: 6px;
+}
+
+.media-card-v2 .card-title {
+    font-size: 0.75rem; /* Smaller font size */
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0 0 2px 0; /* Adjusted margin */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.media-card-v2 .video-metadata {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+}

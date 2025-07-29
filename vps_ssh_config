@@ -1,0 +1,8 @@
+# Ganti nilai-nilai di bawah ini dengan informasi VPS Anda.
+# Simpan file ini setelah Anda selesai mengedit.
+
+Host vps-utama
+    HostName ALAMAT_IP_VPS_ANDA
+    User NAMA_PENGGUNA_ANDA
+    # Jika Anda menggunakan file kunci SSH, uncomment baris di bawah dan sesuaikan path-nya.
+    # IdentityFile ~/.ssh/id_rsa_vps

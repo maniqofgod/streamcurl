@@ -1,0 +1,38 @@
+# FastAPI and related
+fastapi
+uvicorn[standard]
+websockets>=10.0
+python-multipart
+httpx
+requests
+python-dotenv
+
+# Database
+sqlalchemy
+psycopg2-binary
+alembic
+
+# Celery and Redis
+celery
+redis[hiredis]
+
+# Authentication and Security
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt==3.2.0
+itsdangerous
+
+# Google API
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+
+# Media Processing
+opencv-python-headless
+yt-dlp
+python-vlc
+
+# System
+psutil
+
+httpx

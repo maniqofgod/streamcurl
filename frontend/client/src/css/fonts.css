@@ -1,0 +1,105 @@
+@font-face { font-family: 'Arial Narrow'; src: url('../fonts/ARIALN.TTF') format('truetype'); }
+@font-face { font-family: 'Arial Rounded MT Bold'; src: url('../fonts/ARLRDBD.TTF') format('truetype'); }
+@font-face { font-family: 'Baskerville Old Face'; src: url('../fonts/BASKVILL.TTF') format('truetype'); }
+@font-face { font-family: 'Bauhaus 93'; src: url('../fonts/BAUHS93.TTF') format('truetype'); }
+@font-face { font-family: 'Bell MT'; src: url('../fonts/BELL.TTF') format('truetype'); }
+@font-face { font-family: 'Berlin Sans FB'; src: url('../fonts/BRLNSB.TTF') format('truetype'); }
+@font-face { font-family: 'Bernard MT Condensed'; src: url('../fonts/BERNHC.TTF') format('truetype'); }
+@font-face { font-family: 'Blackadder ITC'; src: url('../fonts/ITCBLKAD.TTF') format('truetype'); }
+@font-face { font-family: 'Bodoni MT'; src: url('../fonts/BOD_R.TTF') format('truetype'); }
+@font-face { font-family: 'Book Antiqua'; src: url('../fonts/BKANT.TTF') format('truetype'); }
+@font-face { font-family: 'Bookman Old Style'; src: url('../fonts/BOOKOS.TTF') format('truetype'); }
+@font-face { font-family: 'Bradley Hand ITC'; src: url('../fonts/BRADHITC.TTF') format('truetype'); }
+@font-face { font-family: 'Britannic Bold'; src: url('../fonts/BRITANIC.TTF') format('truetype'); }
+@font-face { font-family: 'Broadway'; src: url('../fonts/BROADW.TTF') format('truetype'); }
+@font-face { font-family: 'Brush Script MT'; src: url('../fonts/BRUSHSCI.TTF') format('truetype'); }
+@font-face { font-family: 'Calibri'; src: url('../fonts/CALIBRI.TTF') format('truetype'); }
+@font-face { font-family: 'Californian FB'; src: url('../fonts/CALIFR.TTF') format('truetype'); }
+@font-face { font-family: 'Calisto MT'; src: url('../fonts/CALIST.TTF') format('truetype'); }
+@font-face { font-family: 'Candara'; src: url('../fonts/Candara.ttf') format('truetype'); }
+@font-face { font-family: 'Cascadia Code'; src: url('../fonts/CascadiaCode.ttf') format('truetype'); }
+@font-face { font-family: 'Castellar'; src: url('../fonts/CASTELAR.TTF') format('truetype'); }
+@font-face { font-family: 'Centaur'; src: url('../fonts/CENTAUR.TTF') format('truetype'); }
+@font-face { font-family: 'Century'; src: url('../fonts/CENTURY.TTF') format('truetype'); }
+@font-face { font-family: 'Chiller'; src: url('../fonts/CHILLER.TTF') format('truetype'); }
+@font-face { font-family: 'Colonna MT'; src: url('../fonts/COLONNA.TTF') format('truetype'); }
+@font-face { font-family: 'Cooper Black'; src: url('../fonts/COOPBL.TTF') format('truetype'); }
+@font-face { font-family: 'Copperplate Gothic'; src: url('../fonts/COPRGTB.TTF') format('truetype'); }
+@font-face { font-family: 'Curlz MT'; src: url('../fonts/CURLZ___.TTF') format('truetype'); }
+@font-face { font-family: 'Elephant'; src: url('../fonts/ELEPHNT.TTF') format('truetype'); }
+@font-face { font-family: 'Engravers MT'; src: url('../fonts/ENGR.TTF') format('truetype'); }
+@font-face { font-family: 'Eras ITC'; src: url('../fonts/ERASMD.TTF') format('truetype'); }
+@font-face { font-family: 'Felix Titling'; src: url('../fonts/FELIXTI.TTF') format('truetype'); }
+@font-face { font-family: 'Forte'; src: url('../fonts/FORTE.TTF') format('truetype'); }
+@font-face { font-family: 'Franklin Gothic'; src: url('../fonts/FRABK.TTF') format('truetype'); }
+@font-face { font-family: 'Freehand521 BT'; src: url('../fonts/FRS521.TTF') format('truetype'); }
+@font-face { font-family: 'Freestyle Script'; src: url('../fonts/FREESCPT.TTF') format('truetype'); }
+@font-face { font-family: 'French Script MT'; src: url('../fonts/FRSCRIPT.TTF') format('truetype'); }
+@font-face { font-family: 'Footlight MT Light'; src: url('../fonts/FTLTLT.TTF') format('truetype'); }
+@font-face { font-family: 'Gabriola'; src: url('../fonts/Gabriola.ttf') format('truetype'); }
+@font-face { font-family: 'Garamond'; src: url('../fonts/GARA.TTF') format('truetype'); }
+@font-face { font-family: 'Gigi'; src: url('../fonts/GIGI.TTF') format('truetype'); }
+@font-face { font-family: 'Gill Sans MT'; src: url('../fonts/GIL_____.TTF') format('truetype'); }
+@font-face { font-family: 'Gloucester MT Extra Condensed'; src: url('../fonts/GLECB.TTF') format('truetype'); }
+@font-face { font-family: 'Goudy Old Style'; src: url('../fonts/GOUDOS.TTF') format('truetype'); }
+@font-face { font-family: 'Goudy Stout'; src: url('../fonts/GOUDYSTO.TTF') format('truetype'); }
+@font-face { font-family: 'Harlow Solid Italic'; src: url('../fonts/HARLOWSI.TTF') format('truetype'); }
+@font-face { font-family: 'Harrington'; src: url('../fonts/HARNGTON.TTF') format('truetype'); }
+@font-face { font-family: 'Haettenschweiler'; src: url('../fonts/HATTEN.TTF') format('truetype'); }
+@font-face { font-family: 'High Tower Text'; src: url('../fonts/HTOWERT.TTF') format('truetype'); }
+@font-face { font-family: 'Impact'; src: url('../fonts/IMPACT.TTF') format('truetype'); }
+@font-face { font-family: 'Imprint MT Shadow'; src: url('../fonts/IMPRISHA.TTF') format('truetype'); }
+@font-face { font-family: 'Informal Roman'; src: url('../fonts/INFROMAN.TTF') format('truetype'); }
+@font-face { font-family: 'Ink Free'; src: url('../fonts/Inkfree.ttf') format('truetype'); }
+@font-face { font-family: 'Jokerman'; src: url('../fonts/JOKERMAN.TTF') format('truetype'); }
+@font-face { font-family: 'Juice ITC'; src: url('../fonts/JUICE___.TTF') format('truetype'); }
+@font-face { font-family: 'Kunstler Script'; src: url('../fonts/KUNSTLER.TTF') format('truetype'); }
+@font-face { font-family: 'Latin Wide'; src: url('../fonts/LATINWD.TTF') format('truetype'); }
+@font-face { font-family: 'Lucida Bright'; src: url('../fonts/LBRITE.TTF') format('truetype'); }
+@font-face { font-family: 'Lucida Calligraphy'; src: url('../fonts/LCALLIG.TTF') format('truetype'); }
+@font-face { font-family: 'Lucida Fax'; src: url('../fonts/LFAX.TTF') format('truetype'); }
+@font-face { font-family: 'Lucida Handwriting'; src: url('../fonts/LHANDW.TTF') format('truetype'); }
+@font-face { font-family: 'Lucida Sans'; src: url('../fonts/LSANS.TTF') format('truetype'); }
+@font-face { font-family: 'Lucida Sans Typewriter'; src: url('../fonts/LTYPE.TTF') format('truetype'); }
+@font-face { font-family: 'Magneto'; src: url('../fonts/MAGNETOB.TTF') format('truetype'); }
+@font-face { font-family: 'Maiandra GD'; src: url('../fonts/MAIAN.TTF') format('truetype'); }
+@font-face { font-family: 'Matura MT Script Capitals'; src: url('../fonts/MATURASC.TTF') format('truetype'); }
+@font-face { font-family: 'Mistral'; src: url('../fonts/MISTRAL.TTF') format('truetype'); }
+@font-face { font-family: 'Modern No. 20'; src: url('../fonts/MOD20.TTF') format('truetype'); }
+@font-face { font-family: 'Mongolian Baiti'; src: url('../fonts/MONBAITI.TTF') format('truetype'); }
+@font-face { font-family: 'Monotype Corsiva'; src: url('../fonts/MTCORSVA.TTF') format('truetype'); }
+@font-face { font-family: 'MS Outlook'; src: url('../fonts/OUTLOOK.TTF') format('truetype'); }
+@font-face { font-family: 'MS Reference Sans Serif'; src: url('../fonts/REFSANS.TTF') format('truetype'); }
+@font-face { font-family: 'MS UI Gothic'; src: url('../fonts/MSUIGHUR.TTF') format('truetype'); }
+@font-face { font-family: 'MT Extra'; src: url('../fonts/MTEXTRA.TTF') format('truetype'); }
+@font-face { font-family: 'Niagara Engraved'; src: url('../fonts/NIAGENG.TTF') format('truetype'); }
+@font-face { font-family: 'Niagara Solid'; src: url('../fonts/NIAGSOL.TTF') format('truetype'); }
+@font-face { font-family: 'Nirmala UI'; src: url('../fonts/Nirmala.ttc') format('truetype'); }
+@font-face { font-family: 'OCR A Extended'; src: url('../fonts/OCRAEXT.TTF') format('truetype'); }
+@font-face { font-family: 'Old English Text MT'; src: url('../fonts/OLDENGL.TTF') format('truetype'); }
+@font-face { font-family: 'Onyx'; src: url('../fonts/ONYX.TTF') format('truetype'); }
+@font-face { font-family: 'Palace Script MT'; src: url('../fonts/PALSCRI.TTF') format('truetype'); }
+@font-face { font-family: 'Papyrus'; src: url('../fonts/PAPYRUS.TTF') format('truetype'); }
+@font-face { font-family: 'Parry Hotter'; src: url('../fonts/PARRYH.TTF') format('truetype'); }
+@font-face { font-family: 'Perpetua'; src: url('../fonts/PER_____.TTF') format('truetype'); }
+@font-face { font-family: 'Playbill'; src: url('../fonts/PLAYBILL.TTF') format('truetype'); }
+@font-face { font-family: 'Poor Richard'; src: url('../fonts/POORICH.TTF') format('truetype'); }
+@font-face { font-family: 'Pristina'; src: url('../fonts/PRISTINA.TTF') format('truetype'); }
+@font-face { font-family: 'Rage Italic'; src: url('../fonts/RAGE.TTF') format('truetype'); }
+@font-face { font-family: 'Ravie'; src: url('../fonts/RAVIE.TTF') format('truetype'); }
+@font-face { font-family: 'Rockwell'; src: url('../fonts/ROCK.TTF') format('truetype'); }
+@font-face { font-family: 'Script MT Bold'; src: url('../fonts/SCRIPTBL.TTF') format('truetype'); }
+@font-face { font-family: 'Segoe Print'; src: url('../fonts/SEGOEPR.TTF') format('truetype'); }
+@font-face { font-family: 'Segoe Script'; src: url('../fonts/SEGOESCR.TTF') format('truetype'); }
+@font-face { font-family: 'Showcard Gothic'; src: url('../fonts/SHOWG.TTF') format('truetype'); }
+@font-face { font-family: 'Snap ITC'; src: url('../fonts/SNAP____.TTF') format('truetype'); }
+@font-face { font-family: 'Stencil'; src: url('../fonts/STENCIL.TTF') format('truetype'); }
+@font-face { font-family: 'Tahoma'; src: url('../fonts/TAHOMA.TTF') format('truetype'); }
+@font-face { font-family: 'Tempus Sans ITC'; src: url('../fonts/TEMPSITC.TTF') format('truetype'); }
+@font-face { font-family: 'Times New Roman'; src: url('../fonts/TIMES.TTF') format('truetype'); }
+@font-face { font-family: 'Tw Cen MT'; src: url('../fonts/TCM_____.TTF') format('truetype'); }
+@font-face { font-family: 'Verdana'; src: url('../fonts/VERDANA.TTF') format('truetype'); }
+@font-face { font-family: 'Viner Hand ITC'; src: url('../fonts/VINERITC.TTF') format('truetype'); }
+@font-face { font-family: 'Vivaldi'; src: url('../fonts/VIVALDII.TTF') format('truetype'); }
+@font-face { font-family: 'Vladimir Script'; src: url('../fonts/VLADIMIR.TTF') format('truetype'); }
+@font-face { font-family: 'Wide Latin'; src: url('../fonts/LATINWD.TTF') format('truetype'); }

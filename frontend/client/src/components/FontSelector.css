@@ -1,0 +1,66 @@
+.font-selector {
+    position: relative;
+    width: 100%;
+    font-family: var(--font-primary);
+}
+
+.font-selector-trigger {
+    width: 100%;
+    background-color: var(--input-bg-dark);
+    border: 1px solid var(--border-color-dark);
+    color: var(--text-primary-dark);
+    padding: 10px 12px;
+    border-radius: 6px;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.font-selector-trigger:focus {
+    outline: none;
+    border-color: var(--primary-accent-dark);
+}
+
+.font-selector-trigger .arrow {
+    border: solid var(--text-secondary-dark);
+    border-width: 0 2px 2px 0;
+    display: inline-block;
+    padding: 3px;
+    transition: transform 0.2s;
+}
+
+.font-selector-trigger .arrow.down {
+    transform: rotate(45deg);
+}
+
+.font-selector-trigger .arrow.up {
+    transform: rotate(-135deg);
+}
+
+.font-selector-options {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: var(--bg-secondary-dark);
+    border: 1px solid var(--border-color-dark);
+    border-radius: 6px;
+    margin-top: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+}
+
+.font-selector-option {
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.font-selector-option:hover {
+    background-color: var(--primary-accent-dark);
+    color: var(--bg-primary-dark);
+}

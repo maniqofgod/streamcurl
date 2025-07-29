@@ -1,0 +1,130 @@
+/* --- Edit Page Specific Styles --- */
+.visual-canvas {
+    border: 1px solid #4b5563;
+    position: relative;
+    overflow: hidden;
+    background-color: #000;
+    margin: auto;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.resizable-box {
+    position: absolute;
+    border: 2px solid transparent;
+}
+
+.resizable-box.selected {
+    border-color: var(--primary-accent);
+}
+
+.handle {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    cursor: move;
+    z-index: 10;
+}
+
+.source-image, .source-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.source-text {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    color: white;
+    background-color: rgba(0,0,0,0.5);
+    overflow: hidden;
+}
+
+.platform-list .platform-item {
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 1px solid #374151;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    transition: background-color 0.3s, border-color 0.3s;
+    cursor: pointer;
+}
+
+.platform-list .platform-item.selected {
+    background-color: #312e81;
+    border-color: #4f46e5;
+}
+
+.platform-list .platform-item label {
+    font-size: 1em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.platform-settings {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #4b5563;
+}
+
+.platform-settings label {
+    font-size: 0.9em;
+    margin-bottom: 5px;
+    display: block;
+    color: #a5b4fc;
+}
+
+.stream-key-input {
+    width: 100%;
+    padding: 8px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border: 1px solid #4b5563;
+    color: #eee;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    font-size: 0.9em;
+}
+
+.form-section {
+    margin-bottom: 15px;
+}
+
+.form-section legend {
+    font-size: 0.9em;
+    font-weight: 600;
+    padding-bottom: 10px;
+    color: var(--text-primary);
+}
+
+.schedule-option {
+    margin-bottom: 10px;
+}
+
+.schedule-label {
+    font-weight: 500;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.schedule-option div {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.schedule-option input[type="radio"] {
+    margin-right: 8px;
+}
+
+.schedule-divider {
+    border: 0;
+    height: 1px;
+    background-color: #374151;
+    margin: 15px 0;
+}

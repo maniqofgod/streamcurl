@@ -1,0 +1,31 @@
+/* 
+  This file provides the full-screen container for the Stream Editor.
+  It ensures that the editor environment takes up the entire viewport.
+*/
+
+.editor-full-screen-container {
+    width: 100vw;
+    height: 100vh;
+    background-color: #0d1117; /* A neutral, dark background */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden; /* Prevents any potential scrollbars on the container itself */
+}
+
+/* The actual layout styling is handled by _stream_builder.css */
+.youtube-link-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.youtube-link-container input {
+    flex-grow: 1;
+}
+
+.form-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 5px;
+}

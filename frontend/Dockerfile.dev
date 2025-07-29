@@ -1,0 +1,15 @@
+# Use a Node.js base image
+FROM node:18-alpine
+
+# Set the working directory
+WORKDIR /usr/src/app
+
+# Install dependencies
+COPY client/package*.json ./
+RUN npm install
+
+# Copy the rest of the client application files
+COPY client/ .
+
+# Command to start the React development server
+CMD [ "npm", "start" ]

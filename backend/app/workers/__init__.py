@@ -1,0 +1,1 @@
+from .stream_tasks import celery_app
