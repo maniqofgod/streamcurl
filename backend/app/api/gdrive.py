@@ -24,8 +24,7 @@ logger = logging.getLogger(__name__)
 class PickerFile(BaseModel):
     id: str
 
-class Credentials(BaseModel):
-    web: dict
+
 
 class RenameRequest(BaseModel):
     new_name: str
@@ -40,11 +39,20 @@ def get_or_create_gdrive_config(db: Session) -> GoogleDriveConfig:
     return config
 
 @router.post("/save-credentials", dependencies=[Depends(get_current_admin_user), Depends(csrf_protect)])
-async def save_credentials(credentials: Credentials, db: Session = Depends(get_db)):
+async def save_credentials(file: UploadFile = File(...), db: Session = Depends(get_db)):
     try:
-        credentials_content = credentials.model_dump_json()
+        credentials_content = await file.read()
+        # Validate that the content is valid JSON
+        try:
+            parsed_json = json.loads(credentials_content)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid JSON format.")
+
+        # Validate that the JSON contains the expected structure
+        if "web" not in parsed_json and "installed" not in parsed_json:
+            raise HTTPException(status_code=400, detail="Invalid credentials file. Missing 'web' or 'installed' key.")
         config = get_or_create_gdrive_config(db)
-        config.credentials = credentials_content
+        config.credentials = credentials_content.decode('utf-8')
         config.token = None
         config.account_email = None
         db.commit()
