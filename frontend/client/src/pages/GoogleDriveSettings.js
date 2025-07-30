@@ -34,17 +34,17 @@ const GoogleDriveSettings = () => {
             alert("Please paste your credentials.json content.");
             return;
         }
-        let parsedCredentials;
-        try {
-            parsedCredentials = JSON.parse(credentialsJson);
-        } catch (error) {
-            alert("Invalid JSON format. Please check your credentials content.");
-            return;
-        }
-
         setIsLoading(true);
         try {
-            await api.post('/gdrive/save-credentials', parsedCredentials);
+            const formData = new FormData();
+            const blob = new Blob([credentialsJson], { type: 'application/json' });
+            formData.append('file', blob, 'credentials.json');
+
+            await api.post('/gdrive/save-credentials', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
             alert("Credentials saved. Please connect your account.");
             setCredentialsJson('');
             fetchStatus();
