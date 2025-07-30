@@ -175,3 +175,7 @@ app.include_router(agent_callbacks.router, prefix="/v1", tags=["agent_callbacks"
 # app.mount("/", StaticFiles(directory="../frontend", html=True), name="static")
 
 app.mount("/media", StaticFiles(directory="media"), name="media")
+
+@app.get("/api/v1/health", status_code=200)
+def health_check():
+    return {"status": "ok"}
