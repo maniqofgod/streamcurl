@@ -3,13 +3,13 @@ FROM node:16-alpine AS build
 WORKDIR /usr/src/app
 
 # Salin package.json dan package-lock.json
-COPY client/package*.json ./
+COPY package*.json ./
 
 # Instal dependensi secara bersih dan cepat
 RUN npm install
 
 # Salin sisa kode aplikasi
-COPY client/ ./
+COPY  ./
 
 # Build aplikasi
 RUN npm run build
