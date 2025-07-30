@@ -9,7 +9,7 @@ COPY package*.json ./
 RUN npm install
 
 # Salin sisa kode aplikasi
-COPY  ./
+COPY . ./
 
 # Build aplikasi
 RUN npm run build
