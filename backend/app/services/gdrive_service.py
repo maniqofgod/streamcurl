@@ -9,7 +9,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
+from googleapiclient.http import MediaIoBaseUpload, MediaIoBaseDownload
 from typing import IO, Union, Optional
 import io
 
@@ -203,7 +203,7 @@ def upload_file(db: Session, user: User, file_stream: IO, filename: str, mimetyp
         'name': filename,
         'parents': [folder_id]
     }
-    media = MediaFileUpload(file_stream.name, mimetype=mimetype, resumable=True)
+    media = MediaIoBaseUpload(file_stream, mimetype=mimetype, resumable=True)
     
     try:
         file = service.files().create(

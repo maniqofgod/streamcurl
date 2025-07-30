@@ -14,7 +14,7 @@ from app.services import gdrive_service
 
 router = APIRouter()
 
-MEDIA_DIR = Path("/media/overlays")
+MEDIA_DIR = Path("/app/media/overlays")
 MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 
 @router.get("/")

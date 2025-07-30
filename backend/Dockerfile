@@ -30,4 +30,4 @@ RUN mkdir -p /app/media/videos /app/media/audios /app/media/overlays /app/media/
 USER appuser
 
 # Command to run the application without reload for stability
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

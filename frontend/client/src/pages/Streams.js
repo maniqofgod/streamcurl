@@ -54,7 +54,7 @@ const Streams = () => {
                 return;
             }
 
-            const wsUrl = `${wsBaseUrl}/ws/${streamId}?token=${token}`;
+            const wsUrl = `${wsBaseUrl}/ws/stream_status/${streamId}`;
             const ws = new WebSocket(wsUrl);
             console.log(`Attempting to connect WebSocket for stream ${streamId} to ${wsUrl}`);
 

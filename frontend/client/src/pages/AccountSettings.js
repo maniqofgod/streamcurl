@@ -105,7 +105,7 @@ const AccountSettings = () => {
                     <div className="card-section">
                         {currentUser.profile_image_url && (
                             <img 
-                                src={`http://localhost:8001${currentUser.profile_image_url}`} 
+                                src={`${process.env.REACT_APP_API_URL || ''}${currentUser.profile_image_url}`} 
                                 alt="Profile" 
                                 className="profile-picture-preview"
                             />

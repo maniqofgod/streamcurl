@@ -29,6 +29,9 @@ class PickerFile(BaseModel):
 class RenameRequest(BaseModel):
     new_name: str
 
+class SetFolderRequest(BaseModel):
+    folder_id: str
+
 def get_or_create_gdrive_config(db: Session) -> GoogleDriveConfig:
     config = db.query(GoogleDriveConfig).first()
     if not config:
@@ -91,6 +94,20 @@ def disconnect_gdrive(db: Session = Depends(get_db)):
     config = db.query(GoogleDriveConfig).first()
     if config:
         config.token = None
+
+@router.post("/set-folder", dependencies=[Depends(get_current_admin_user), Depends(csrf_protect)])
+async def set_drive_folder(request: SetFolderRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    try:
+        # Here you would typically validate the folder_id with Google Drive API
+        # For now, we'll just save it.
+        current_user.gdrive_folder_id = request.folder_id
+        db.commit()
+        return {"message": "Folder ID set successfully."}
+    except Exception as e:
+        logger.error(f"Failed to set folder ID for user {current_user.id}: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to set folder ID.")
+
         config.account_email = None
         db.commit()
     return {"message": "Successfully disconnected from Google Drive."}
@@ -172,6 +189,12 @@ async def upload_to_my_drive(file: UploadFile = File(...), db: Session = Depends
         raise HTTPException(status_code=400, detail="Current user does not have a Google Drive folder configured.")
     tmp_path = None
     try:
+        logger.info(f"Uploading file '{file.filename}' with content type '{file.content_type}'")
+        file.file.seek(0, os.SEEK_END)
+        file_size = file.file.tell()
+        logger.info(f"Reported file size: {file_size} bytes")
+        file.file.seek(0)
+
         with tempfile.NamedTemporaryFile(delete=False, suffix=file.filename) as tmp:
             await run_in_threadpool(shutil.copyfileobj, file.file, tmp)
             tmp_path = tmp.name

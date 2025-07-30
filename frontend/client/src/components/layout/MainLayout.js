@@ -32,7 +32,7 @@ const MainLayout = ({ children, title, user, onLogout }) => {
                 <div className="sidebar-footer">
                     <div className="user-profile">
                         {user?.profile_image_url ? (
-                            <img src={`http://localhost:8001${user.profile_image_url}`} alt="Profile" className="profile-pic" />
+                            <img src={`${process.env.REACT_APP_API_URL || ''}${user.profile_image_url}`} alt="Profile" className="profile-pic" />
                         ) : (
                             <i className="fas fa-user-circle"></i>
                         )}

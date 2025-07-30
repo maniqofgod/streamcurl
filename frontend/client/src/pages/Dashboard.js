@@ -117,13 +117,15 @@ const Dashboard = () => {
             <div className="stats-bar">
                 <StatCard title="VPS CPU Usage" value={`${vps_stats.cpu_usage_percent?.toFixed(1) || 0}%`} icon="fa-microchip" error={vps_stats.error} />
                 <StatCard title="RAM Usage" value={`${vps_stats.ram_usage_percent?.toFixed(1) || 0}%`} icon="fa-memory" />
-                <StatCard 
-                    title="Google Drive Usage" 
-                    value={`${parseFloat(gdrive_stats.usage_percent)?.toFixed(1) || 0}%`} 
-                    subValue={gdrive_stats.error ? '' : `${gdrive_stats.usage_gb} GB / ${gdrive_stats.limit_gb} GB`}
-                    icon="fab fa-google-drive"
-                    error={gdrive_stats.error}
-                />
+                {currentUser?.role === 'admin' && (
+                    <StatCard 
+                        title="Google Drive Usage" 
+                        value={`${parseFloat(gdrive_stats.usage_percent)?.toFixed(1) || 0}%`} 
+                        subValue={gdrive_stats.error ? '' : `${gdrive_stats.usage_gb} GB / ${gdrive_stats.limit_gb} GB`}
+                        icon="fab fa-google-drive"
+                        error={gdrive_stats.error}
+                    />
+                )}
                 <StatCard title="Total Streams" value={stream_stats.total} icon="fa-video" />
                 
                 <StatCard title="Network I/O" icon="fa-network-wired">

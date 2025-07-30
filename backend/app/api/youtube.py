@@ -46,7 +46,7 @@ def link_youtube_to_stream(
     db.refresh(db_stream)
     return db_stream
 
-@router.get("/youtube/stats/{stream_id}", response_model=StreamSchema)
+@router.get("/stats/{stream_id}", response_model=StreamSchema)
 def get_youtube_stats(
     stream_id: int,
     db: Session = Depends(get_db),

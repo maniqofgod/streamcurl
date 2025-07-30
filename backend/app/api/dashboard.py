@@ -37,13 +37,13 @@ def get_dashboard_data(
         "usage_percent": 0,
         "error": "Not Configured"
     }
-    gdrive_config = db.query(GoogleDriveConfig).first()
-    if gdrive_config and gdrive_config.token:
-        stats = gdrive_service.get_drive_about(db)
-        if stats:
-            gdrive_stats = stats
-        else:
-            raise HTTPException(status_code=503, detail="Could not connect to Google Drive to fetch stats.")
+    # Attempt to get stats for the current user. 
+    # The service will handle whether the user has a token.
+    stats = gdrive_service.get_drive_about(db, user=current_user)
+    if stats:
+        gdrive_stats = stats
+    # If stats is None, it means the user (nor a global account) is configured.
+    # The default "Not Configured" message will be shown, which is fine.
 
 
     # VPS stats

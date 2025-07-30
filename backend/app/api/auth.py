@@ -9,6 +9,8 @@ import os
 import shutil
 import uuid
 from fastapi import UploadFile, File
+from PIL import Image, ImageDraw, ImageFont
+import random
 
 from ..schemas import token as token_schema
 from ..schemas import user as user_schema
@@ -20,6 +22,42 @@ from ..services import gdrive_service
 router = APIRouter()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/token")
+
+PROFILE_PICS_STORAGE_PATH = "/app/media/profile_pics"
+os.makedirs(PROFILE_PICS_STORAGE_PATH, exist_ok=True)
+
+def generate_default_profile_picture(username: str) -> str:
+    """Generates a simple profile picture with the user's first initial."""
+    initial = username[0].upper()
+    
+    # Generate a random background color
+    bg_color = (random.randint(100, 200), random.randint(100, 200), random.randint(100, 200))
+    
+    # Create an image
+    image = Image.new('RGB', (200, 200), color=bg_color)
+    draw = ImageDraw.Draw(image)
+    
+    # Use a default font
+    try:
+        font = ImageFont.truetype("arial.ttf", 100)
+    except IOError:
+        font = ImageFont.load_default()
+
+    # Get text size and position
+    text_bbox = draw.textbbox((0, 0), initial, font=font)
+    text_width = text_bbox[2] - text_bbox[0]
+    text_height = text_bbox[3] - text_bbox[1]
+    position = ((200 - text_width) / 2, (200 - text_height) / 2)
+    
+    # Draw the initial on the image
+    draw.text(position, initial, fill="white", font=font)
+    
+    # Save the image
+    filename = f"{uuid.uuid4()}.png"
+    file_location = os.path.join(PROFILE_PICS_STORAGE_PATH, filename)
+    image.save(file_location)
+    
+    return filename
 
 @router.post("/token", response_model=token_schema.Token)
 async def login_for_access_token(response: Response, db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
@@ -52,6 +90,11 @@ async def create_user(user: user_schema.UserCreate, db: Session = Depends(get_db
     db_user = security.get_user(db, username=user.username)
     if db_user:
         raise HTTPException(status_code=400, detail="Username already registered")
+    
+    # Generate default profile picture
+    default_pic_filename = generate_default_profile_picture(user.username)
+    user.profile_image_url = f"/media/profile_pics/{default_pic_filename}"
+    
     return security.create_user(db=db, user=user)
 
 @router.get("/users/me", response_model=user_schema.User)
@@ -74,9 +117,6 @@ async def change_current_user_password(
     db.commit()
     db.refresh(current_user)
     return
-
-PROFILE_PICS_STORAGE_PATH = "/media/profile_pics"
-os.makedirs(PROFILE_PICS_STORAGE_PATH, exist_ok=True)
 
 @router.put("/users/me/profile-picture", response_model=user_schema.User)
 async def upload_profile_picture(

@@ -10,47 +10,42 @@ const ImageLibraryModal = ({ isOpen, onClose, onSave }) => {
     const [selectedImages, setSelectedImages] = useState([]);
 
     // Library state
-    const [libraryPage, setLibraryPage] = useState(1);
-    const [, setLibraryTotalPages] = useState(0);
-    // sourceType is now fixed to 'gdrive'
+    const [loading, setLoading] = useState(false);
     
-
     // Search state
     const [query, setQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
-    const [loading, setLoading] = useState(false);
     const [searchPage, setSearchPage] = useState(1);
     const [searchTotalPages, setSearchTotalPages] = useState(0);
     const [isUploadModalOpen, setUploadModalOpen] = useState(false);
-    const [downloading, setDownloading] = useState(null); // Tracks the ID of the image being downloaded
+    const [downloading, setDownloading] = useState(null);
 
-    const fetchLibraryImages = useCallback(async (page) => {
+    const fetchLibraryImages = useCallback(async () => {
         try {
             setLoading(true);
-            // Always fetch from Google Drive
-            const response = await api.get('/gdrive/files/image');
-            setImages(response.data);
-            setLibraryTotalPages(1); // GDrive doesn't have pagination in this implementation
+            // Use the full, absolute path to be certain
+            const response = await api.get('/api/v1/gdrive/files/image');
+            setImages(response.data || []);
         } catch (error) {
-            console.error(`Error fetching gdrive images:`, error);
+            console.error(`Error fetching Google Drive images:`, error);
             setImages([]);
         } finally {
             setLoading(false);
         }
-    }, []); // No longer depends on sourceType
+    }, []);
 
     useEffect(() => {
         if (isOpen && activeTab === 'library') {
-            fetchLibraryImages(libraryPage);
+            fetchLibraryImages();
         } else if (!isOpen) {
-            setLibraryPage(1);
             setSelectedImages([]);
         }
-    }, [isOpen, activeTab, libraryPage, fetchLibraryImages]);
+    }, [isOpen, activeTab, fetchLibraryImages]);
 
     const handleImageSelect = (image) => {
         setSelectedImages(prevSelected => {
-            if (prevSelected.find(i => i.id === image.id)) {
+            const isSelected = prevSelected.some(i => i.id === image.id);
+            if (isSelected) {
                 return prevSelected.filter(i => i.id !== image.id);
             } else {
                 return [...prevSelected, image];
@@ -78,6 +73,9 @@ const ImageLibraryModal = ({ isOpen, onClose, onSave }) => {
         setDownloading(imageId);
         try {
             const downloadedImage = await downloadPixabayImage(imageUrl);
+            // Refresh the library to show the newly uploaded image
+            await fetchLibraryImages(); 
+            // Select the image and switch to the library
             handleImageSelect(downloadedImage);
             setActiveTab('library');
         } catch (error) {
@@ -89,7 +87,17 @@ const ImageLibraryModal = ({ isOpen, onClose, onSave }) => {
     };
 
     const handleUseImages = () => {
-        onSave(selectedImages);
+        // The objects from GDrive need to be adapted for use in the editor
+        const adaptedImages = selectedImages.map(img => ({
+            id: img.id,
+            gdrive_file_id: img.id, // Use GDrive ID
+            display_name: img.name,
+            source: 'gdrive',
+            type: 'image',
+            url: `/api/v1/gdrive/stream/${img.id}`, // URL for the full image/stream
+            thumbnail_url: img.thumbnail_url, // Thumbnail URL
+        }));
+        onSave(adaptedImages);
         onClose();
     };
 
@@ -106,20 +114,19 @@ const ImageLibraryModal = ({ isOpen, onClose, onSave }) => {
                 </div>
                 <div className="modal-body">
                     <div className="modal-tabs">
-<button className="modal-btn" onClick={() => setUploadModalOpen(true)}>Upload Image</button>
+                        <button className="modal-btn" onClick={() => setUploadModalOpen(true)}>Upload Image</button>
                         <button className={`tab-btn ${activeTab === 'library' ? 'active' : ''}`} onClick={() => setActiveTab('library')}>Library</button>
                         <button className={`tab-btn ${activeTab === 'search' ? 'active' : ''}`} onClick={() => setActiveTab('search')}>Search Pixabay</button>
                     </div>
                     
                     {activeTab === 'library' && (
                         <>
-                            {/* Source toggle is removed */}
                             <div className="media-library-grid">
-                                {images.length > 0 ? (
+                                {loading ? <LoadingSpinner /> : images.length > 0 ? (
                                     images.map(image => {
                                         const isSelected = selectedImages.some(i => i.id === image.id);
-                                        // All images are from GDrive now
-                                        const thumbnailUrl = `/api/v1/gdrive/thumbnail/${image.id}`;
+                                        // Use the thumbnail_url directly from the backend response
+                                        const thumbnailUrl = image.thumbnail_url;
 
                                         return (
                                             <div 
@@ -127,8 +134,12 @@ const ImageLibraryModal = ({ isOpen, onClose, onSave }) => {
                                                 className={`media-item ${isSelected ? 'selected' : ''}`}
                                                 onClick={() => handleImageSelect(image)}
                                             >
-                                                <img src={thumbnailUrl} alt={image.display_name || image.name} style={{ width: '100%', height: 'auto', objectFit: 'cover' }} />
-                                                <p>{image.display_name || image.name}</p>
+                                                {thumbnailUrl ? (
+                                                    <img src={thumbnailUrl} alt={image.name} style={{ width: '100%', height: 'auto', objectFit: 'cover' }} />
+                                                ) : (
+                                                    <div className="no-thumbnail">No Preview</div>
+                                                )}
+                                                <p>{image.name}</p>
                                             </div>
                                         );
                                     })
@@ -136,7 +147,7 @@ const ImageLibraryModal = ({ isOpen, onClose, onSave }) => {
                                     <p>No images found in your Google Drive.</p>
                                 )}
                             </div>
-                            {/* Pagination for local is removed */}
+                            {/* Pagination is removed as it's not supported by the GDrive listing */}
                         </>
                     )}
 
@@ -189,12 +200,12 @@ const ImageLibraryModal = ({ isOpen, onClose, onSave }) => {
                         Use ({selectedImages.length}) Image(s)
                     </button>
                 </div>
-{isUploadModalOpen && (
+                {isUploadModalOpen && (
                     <UploadMediaModal 
                         onClose={() => setUploadModalOpen(false)}
                         onUploadComplete={() => {
                             setUploadModalOpen(false);
-                            fetchLibraryImages(1); // Refresh library
+                            fetchLibraryImages(); // Refresh library
                         }}
                     />
                 )}

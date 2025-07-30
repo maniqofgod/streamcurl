@@ -36,3 +36,5 @@ python-vlc
 psutil
 
 httpx
+
+Pillow

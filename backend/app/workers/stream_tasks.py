@@ -77,7 +77,7 @@ def generate_stream_thumbnail(stream_id: int):
             if os.path.basename(stream.thumbnail_url) != thumbnail_filename:
                  os.remove(f"/app{stream.thumbnail_url}")
 
-        stream.thumbnail_url = f"/media/thumbnails/{thumbnail_filename}"
+        stream.thumbnail_url = f"media/thumbnails/{thumbnail_filename}"
         db.commit()
         logger.info(f"Canvas thumbnail created and saved for stream {stream_id} at {thumbnail_path}")
         update_stream_status(db, stream_id, "Idle", "Thumbnail updated.")

@@ -2,30 +2,22 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend/client:/usr/src/app
-      - /usr/src/app/node_modules
-    environment:
-      - DANGEROUSLY_DISABLE_HOST_CHECK=true
-      - PORT=3000
-    env_file: .env
+      - "8081:80"
     depends_on:
-      api:
-        condition: service_healthy
-    restart: on-failure
+      - api
     networks:
       - streamcurl-net
 
   api:
     build:
       context: ./backend
+    user: root
+    command: sh -c "chown -R 1000:1000 /app/media && uvicorn main:app --host 0.0.0.0 --port 8000"
     ports: ["8001:8000"]
     volumes:
-      - ./backend:/app
-      - ./backend/media:/media
+      - ./backend/media:/app/media
     env_file: .env
     depends_on:
       db:
@@ -33,9 +25,9 @@ services:
       redis:
         condition: service_started
     environment:
-      - DATABASE_URL=postgresql://user:password@db/mydatabase
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB}
       - REDIS_URL=redis://redis:6379
-    restart: always
+    restart: on-failure
     healthcheck:
       test: ["CMD-SHELL", "curl --fail http://localhost:8000/v1/health || exit 1"]
       interval: 10s
@@ -47,19 +39,16 @@ services:
   celery_worker:
     build:
       context: ./backend
-    command: /bin/bash -c "mkdir -p /app/media/hls /app/media/temp && celery -A app.workers.stream_tasks worker --loglevel=info"
     user: root
+    command: sh -c "chown -R 1000:1000 /app/media && celery -A app.workers.stream_tasks worker --loglevel=info"
     volumes:
-      - ./backend:/app
-      - ./backend/media:/media
+      - ./backend/media:/app/media
     env_file: .env
     depends_on:
-      redis:
-        condition: service_started
-      db:
-        condition: service_healthy
+      - redis
+      - db
     environment:
-      - DATABASE_URL=postgresql://user:password@db/mydatabase
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB}
       - REDIS_URL=redis://redis:6379
     restart: on-failure
     networks:
@@ -67,18 +56,15 @@ services:
 
   db:
     image: postgres:13
-    ports:
-      - "5433:5432"
-    environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=mydatabase
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d mydatabase"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
-    restart: always
     networks:
       - streamcurl-net
 
@@ -87,6 +73,20 @@ services:
     networks:
       - streamcurl-net
 
+  vps_agent:
+    build:
+      context: ./vps-agent
+    ports:
+      - "8002:8001"
+    env_file:
+      - .env
+    restart: on-failure
+    networks:
+      - streamcurl-net
+
 networks:
   streamcurl-net:
     driver: bridge
+
+volumes:
+  postgres_data:

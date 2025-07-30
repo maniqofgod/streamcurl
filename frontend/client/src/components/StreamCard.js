@@ -42,35 +42,7 @@ const StreamCard = ({ stream, onStreamUpdate, onDelete, viewMode }) => {
         };
     }, [status, started_at]);
 
-    useEffect(() => {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/api/streams/ws/stream_status/${id}`;
-
-        const ws = new WebSocket(wsUrl);
-
-        ws.onopen = () => {
-            console.log(`WebSocket connected for stream ${id}`);
-        };
-
-        ws.onmessage = (event) => {
-            const updatedStream = JSON.parse(event.data);
-            if (onStreamUpdate) {
-                onStreamUpdate(updatedStream);
-            }
-        };
-
-        ws.onclose = () => {
-            console.log(`WebSocket disconnected for stream ${id}`);
-        };
-
-        ws.onerror = (error) => {
-            console.error(`WebSocket error for stream ${id}:`, error);
-        };
-
-        return () => {
-            ws.close();
-        };
-    }, [id, onStreamUpdate]);
+    
 
     useEffect(() => {
         let statsInterval;
@@ -205,7 +177,7 @@ const StreamCard = ({ stream, onStreamUpdate, onDelete, viewMode }) => {
     const getThumbnailUrl = () => {
         if (!thumbnail_url) return null;
         
-        const API_BASE_URL = '';
+        const API_BASE_URL = process.env.REACT_APP_API_URL || '';
         const token = localStorage.getItem('access_token');
         let url = thumbnail_url;
 
@@ -237,8 +209,7 @@ const StreamCard = ({ stream, onStreamUpdate, onDelete, viewMode }) => {
                         <div className="youtube-stats-list">
                             <span><i className="fas fa-eye"></i> {(youtube_view_count ?? 0).toLocaleString()}</span>
                             <span><i className="fas fa-thumbs-up"></i> {(youtube_like_count ?? 0).toLocaleString()}</span>
-                            <span><i className="fas fa-comment"></i> {(youtube_comment_count ?? 0).toLocaleString()}</span>
-                            {status === 'LIVE' && <span><i className="fas fa-user-clock"></i> {(youtube_live_viewers ?? 0).toLocaleString()}</span>}
+                            
                         </div>
                     )}
                 </div>
@@ -316,8 +287,7 @@ const StreamCard = ({ stream, onStreamUpdate, onDelete, viewMode }) => {
                     <div className="youtube-stats">
                         <span title="Views"><i className="fas fa-eye"></i> {(youtube_view_count ?? 0).toLocaleString()}</span>
                         <span title="Likes"><i className="fas fa-thumbs-up"></i> {(youtube_like_count ?? 0).toLocaleString()}</span>
-                        <span title="Comments"><i className="fas fa-comment"></i> {(youtube_comment_count ?? 0).toLocaleString()}</span>
-                        {status === 'LIVE' && <span title="Live Viewers"><i className="fas fa-user-clock"></i> {(youtube_live_viewers ?? 0).toLocaleString()}</span>}
+                        
                     </div>
                 )}
             </div>

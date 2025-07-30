@@ -100,62 +100,56 @@ def startup_event():
 def health_check():
     return {"status": "ok"}
 
-@app.websocket("/ws/{stream_id}")
+@app.websocket("/ws/stream_status/{stream_id}")
 async def websocket_endpoint(
     websocket: WebSocket,
     stream_id: int,
-    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_for_websocket)
 ):
-
-    stream = db.query(Stream).filter(Stream.id == stream_id).first()
-    if not stream:
-        await websocket.close(code=status.WS_1007_INVALID_FRAMEWORK_PAYLOAD, reason="Stream not found")
-        return
-    if current_user.role != "admin" and stream.user_id != current_user.id:
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Not authorized")
-        return
-
     await websocket.accept()
-
-    async def redis_listener(ws: WebSocket):
-        async with aredis_client.pubsub() as pubsub:
-            await pubsub.subscribe(f"stream_status_{stream_id}")
-            while True:
-                try:
-                    message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
-                    if message:
-                        await ws.send_text(message['data'])
-                except asyncio.CancelledError:
-                    logger.info(f"Redis listener task for stream {stream_id} cancelled.")
-                    break
-                except (WebSocketDisconnect, ConnectionClosedError):
-                    logger.info(f"WebSocket disconnected for stream {stream_id} during redis listen.")
-                    break
-                except Exception as e:
-                    logger.error(f"Exception in Redis listener for stream {stream_id}: {e}")
-                    break
-
-    if stream:
-        try:
-            initial_status = json.dumps({"type": "status_update", "stream_id": stream_id, "status": stream.status, "details": ""})
-            await websocket.send_text(initial_status)
-        except (WebSocketDisconnect, ConnectionClosedError):
+    
+    db = session.SessionLocal()
+    listener_task = None
+    try:
+        stream = db.query(Stream).filter(Stream.id == stream_id).first()
+        if not stream:
+            await websocket.close(code=status.WS_1007_INVALID_FRAMEWORK_PAYLOAD, reason="Stream not found")
+            return
+        if current_user.role != "admin" and stream.user_id != current_user.id:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Not authorized")
             return
 
-    listener_task = asyncio.create_task(redis_listener(websocket))
-    
-    try:
+        # Send initial status
+        initial_status = json.dumps({"type": "status_update", "stream_id": stream_id, "status": stream.status, "details": ""})
+        await websocket.send_text(initial_status)
+
+        # Start Redis listener
+        pubsub = aredis_client.pubsub()
+        await pubsub.subscribe(f"stream_status_{stream_id}")
+
+        async def redis_listener(ws: WebSocket):
+            while True:
+                message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=None)
+                if message:
+                    await ws.send_text(message['data'])
+
+        listener_task = asyncio.create_task(redis_listener(websocket))
+        
+        # Keep the connection alive
         while True:
-            await asyncio.sleep(60)
+            await websocket.receive_text()
+
     except (WebSocketDisconnect, ConnectionClosedError):
         logger.info(f"Client for stream {stream_id} disconnected.")
     finally:
-        listener_task.cancel()
-        try:
-            await listener_task
-        except asyncio.CancelledError:
-            pass
+        if listener_task:
+            listener_task.cancel()
+            try:
+                await listener_task
+            except asyncio.CancelledError:
+                pass
+        db.close()
+
 
 app.include_router(media_files.router, prefix="/v1/media-files", tags=["media_files"])
 app.include_router(streams.router, prefix="/v1/streams", tags=["streams"])
@@ -174,7 +168,7 @@ app.include_router(agent_callbacks.router, prefix="/v1", tags=["agent_callbacks"
 # This must be mounted last
 # app.mount("/", StaticFiles(directory="../frontend", html=True), name="static")
 
-app.mount("/media", StaticFiles(directory="media"), name="media")
+app.mount("/media", StaticFiles(directory="/app/media"), name="media")
 
 @app.get("/api/v1/health", status_code=200)
 def health_check():

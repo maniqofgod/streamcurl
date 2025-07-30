@@ -159,7 +159,7 @@ const AudioSourceProperties = ({
 }) => {
     const items = source.items || [];
     const totalDuration = items.reduce((acc, audio) => acc + (audio.duration || 0), 0);
-    const currentAudio = items[currentAudioIndex];
+    const currentAudio = items && typeof currentAudioIndex === 'number' && currentAudioIndex >= 0 ? items[currentAudioIndex] : null;
 
     return (
         <div className="audio-source-properties">
@@ -180,9 +180,12 @@ const AudioSourceProperties = ({
                 <div className="playlist-items">
                     {items.map((audio, index) => (
                         <div key={audio.id} className={`playlist-item ${index === currentAudioIndex ? 'active' : ''}`}>
-                            <span className="video-name">{audio.display_name}</span>
+                            <div className="audio-details">
+                                <span className="audio-name">{audio.display_name}</span>
+                                <small className="audio-filepath">{audio.filepath ? audio.filepath.split('/').pop() : ''}</small>
+                            </div>
                             <div className="playlist-item-controls">
-                                <span className="video-duration">{formatDuration(audio.duration)}</span>
+                                <span className="audio-duration">{formatDuration(audio.duration)}</span>
                                 <div className="loop-control">
                                    <input 
                                         type="checkbox" 

@@ -145,7 +145,14 @@ const StreamBuilder = ({ streamId }) => {
                                 return items.map(item => {
                                     const newItem = { ...item };
                                     if (newItem.storage_type === 'gdrive' && newItem.gdrive_file_id && !newItem.filepath) {
-                                        const itemType = source.type === 'image' ? 'thumbnail' : 'stream';
+                                        let itemType;
+                                        if (source.type === 'image') {
+                                            itemType = 'thumbnail';
+                                        } else if (source.type === 'video' || source.type === 'audio') {
+                                            itemType = 'stream';
+                                        } else {
+                                            itemType = 'stream'; // Default for unknown types
+                                        }
                                         newItem.filepath = `gdrive/${itemType}/${newItem.gdrive_file_id}`;
                                     }
                                     
@@ -515,16 +522,14 @@ const StreamBuilder = ({ streamId }) => {
                     const audioData = {
                         ...aud,
                         loop: false,
-                        // Ensure `type` is explicitly set for `getMediaUrl` logic
-                        type: 'audio', 
+                        type: 'audio',
                     };
-    
-                    // The modal provides `gdrive_id`. We need to handle this to create the correct filepath.
-                    // We also standardize on `gdrive_file_id` for consistency with saving/loading.
-                    if (aud.source === 'gdrive' && aud.gdrive_id) {
+
+                    if (aud.source === 'gdrive' && aud.id) {
                         audioData.storage_type = 'gdrive';
-                        audioData.filepath = `gdrive://${aud.gdrive_id}`;
-                        audioData.gdrive_file_id = aud.gdrive_id;
+                        // Use the same filepath structure as videos for consistency
+                        audioData.filepath = `gdrive/stream/${aud.id}`; 
+                        audioData.gdrive_file_id = aud.id; // The `id` from the modal *is* the gdrive_file_id
                     }
                     
                     return audioData;
@@ -1041,42 +1046,37 @@ const StreamBuilder = ({ streamId }) => {
     const getMediaUrl = (item) => {
         if (!item) return '';
     
-        const isVideo = item.type === 'video' || (item.mime_type && item.mime_type.startsWith('video/'));
-        const isAudio = item.type === 'audio' || (item.mime_type && item.mime_type.startsWith('audio/'));
-    
-        // Handle GDrive items using the gdrive:// URI scheme
-        if (item.filepath && item.filepath.startsWith('gdrive://')) {
-            const fileId = item.filepath.substring('gdrive://'.length);
-            if (isVideo || isAudio) {
-                return `/api/v1/gdrive/stream/${fileId}`;
-            }
-            // Default to thumbnail for images or other types
-            return `/api/v1/gdrive/thumbnail/${fileId}`;
-        }
-    
-        // Handle legacy GDrive paths (for backward compatibility)
+        // Handle GDrive items first, as they are the most common case
         if (item.storage_type === 'gdrive') {
             const fileId = item.gdrive_file_id || item.id;
             if (!fileId) return '';
     
-            if (isVideo || isAudio) {
+            // Videos and Audios use the stream endpoint
+            if (item.type === 'video' || item.type === 'audio') {
                 return `/api/v1/gdrive/stream/${fileId}`;
             }
-            return `/api/v1/gdrive/thumbnail/${fileId}`;
+            // Images use the thumbnail endpoint
+            if (item.type === 'image') {
+                return `/api/v1/gdrive/thumbnail/${fileId}`;
+            }
         }
     
-        // Handle local files
+        // Handle local files (which might include legacy gdrive paths)
         if (item.filepath) {
-            // Assuming local files are served from an endpoint that mirrors their path
-            return `/api/v1/${item.filepath}`;
+            // This will handle paths like `gdrive/stream/FILE_ID` or `gdrive/thumbnail/FILE_ID`
+            if (item.filepath.startsWith('gdrive/')) {
+                return `/api/v1/${item.filepath}`;
+            }
+            // Handle other local file paths if necessary
+            // return `/api/v1/${item.filepath}`; // Example
         }
     
-        // Fallback for external URLs (e.g., YouTube thumbnails)
+        // Fallback for external URLs (e.g., from SoundCloud or YouTube)
         if (item.thumbnail_url) {
             return item.thumbnail_url;
         }
     
-        return '';
+        return ''; // Return empty string if no valid URL can be constructed
     };
     const { scale } = canvasDimensions;
 
