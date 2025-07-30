@@ -12,7 +12,7 @@ const GoogleDriveSettings = () => {
     const fetchStatus = useCallback(async () => {
         setIsLoading(true);
         try {
-            const response = await api.get('/gdrive/status');
+            const response = await api.get('/v1/gdrive/status');
             setStatus(response.data);
             if (response.data.drive_folder_id) {
                 setFolderId(response.data.drive_folder_id);
@@ -40,7 +40,7 @@ const GoogleDriveSettings = () => {
             const blob = new Blob([credentialsJson], { type: 'application/json' });
             formData.append('file', blob, 'credentials.json');
 
-            await api.post('/gdrive/save-credentials', formData, {
+            await api.post('/v1/gdrive/save-credentials', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -58,7 +58,7 @@ const GoogleDriveSettings = () => {
 
     const handleConnect = async () => {
         try {
-            const response = await api.get('/gdrive/auth/url');
+            const response = await api.get('/v1/gdrive/auth/url');
             const { auth_url } = response.data;
             // Open the authentication URL in a new tab
             window.open(auth_url, '_blank', 'noopener,noreferrer');
@@ -75,7 +75,7 @@ const GoogleDriveSettings = () => {
         }
         setIsLoading(true);
         try {
-            await api.post('/gdrive/disconnect');
+            await api.post('/v1/gdrive/disconnect');
             alert("Successfully disconnected.");
             fetchStatus();
         } catch (error) {
@@ -90,7 +90,7 @@ const GoogleDriveSettings = () => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            await api.post('/gdrive/set-folder', { folder_id: folderId });
+            await api.post('/v1/gdrive/set-folder', { folder_id: folderId });
             alert("Folder ID updated successfully.");
             fetchStatus();
         } catch (error) {
