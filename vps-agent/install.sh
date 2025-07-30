@@ -85,7 +85,7 @@ EOF
 
 # 5. Buat Layanan Systemd
 AGENT_PORT=8001
-SERVICE_FILE="/etc/systemd/system/vps-agent.service"
+SERVICE_FILE="/etc/systemd/system/streamcurl-agent.service"
 CURRENT_USER=$(whoami)
 
 log_info "Membuat layanan systemd..."
@@ -109,10 +109,10 @@ WantedBy=multi-user.target"
 
 echo "$SERVICE_CONTENT" | sudo tee $SERVICE_FILE > /dev/null
 
-log_info "Mengaktifkan dan memulai layanan vps-agent..."
+log_info "Mengaktifkan dan memulai layanan streamcurl-agent..."
 sudo systemctl daemon-reload
-sudo systemctl enable vps-agent.service > /dev/null 2>&1
-sudo systemctl restart vps-agent.service
+sudo systemctl enable streamcurl-agent.service > /dev/null 2>&1
+sudo systemctl restart streamcurl-agent.service
 
 # 6. Konfigurasi Firewall
 log_info "Mengkonfigurasi firewall untuk mengizinkan port $AGENT_PORT..."
@@ -137,4 +137,4 @@ echo -e "  ${YELLOW}--- Spesifikasi VPS Terdeteksi ---${NC}"
 echo -e "  ${GREEN}Total Core CPU: $CPU_CORES${NC}"
 echo -e "  ${GREEN}Total RAM: $TOTAL_RAM_GB GB${NC}"
 echo -e "--------------------------------------------------"
-echo -e "Anda dapat memeriksa status layanan dengan menjalankan: ${YELLOW}sudo systemctl status vps-agent${NC}"
+echo -e "Anda dapat memeriksa status layanan dengan menjalankan: ${YELLOW}sudo systemctl status streamcurl-agent${NC}"
