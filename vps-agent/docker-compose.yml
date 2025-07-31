@@ -11,9 +11,3 @@ services:
       - "8001:8001"
     env_file:
       - .env
-    networks:
-      - agent-net
-
-networks:
-  agent-net:
-    driver: bridge

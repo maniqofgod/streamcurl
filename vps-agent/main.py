@@ -21,7 +21,7 @@ AGENT_API_KEY = os.getenv("AGENT_API_KEY", "a-very-secret-key")
 
 # Struktur data untuk menyimpan proses yang sedang berjalan
 # Key: stream_id (int), Value: Popen object
-running_processes: Dict[int, subprocess.Popen] = {}
+running_processes: Dict[int, asyncio.subprocess.Process] = {}
 
 # --- Model Data (Pydantic) ---
 
@@ -79,7 +79,7 @@ async def monitor_stream_process(payload: StreamPayload):
         return
 
     await asyncio.sleep(5)
-    if process.poll() is None:
+    if process.returncode is None:
         status_payload = StatusUpdatePayload(stream_id=stream_id, status="LIVE", details="Stream is now live on VPS.")
         await send_status_update(status_payload, payload.callback_url, payload.callback_api_key)
 

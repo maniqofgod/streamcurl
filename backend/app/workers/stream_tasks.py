@@ -46,10 +46,7 @@ def generate_stream_thumbnail(stream_id: int):
             logger.error(f"Thumbnail task: Stream {stream_id} not found or has no settings.")
             return
 
-        if stream.vps_id:
-            logger.info(f"Thumbnail generation is not applicable for VPS streams (stream {stream_id}). Skipping.")
-            update_stream_status(db, stream_id, "Idle", "Thumbnail generation not applicable for VPS streams.")
-            return
+        
 
         # Prepare media, which will also set the "Downloading" status
         new_settings, temp_dir = prepare_stream_media(stream_id)
