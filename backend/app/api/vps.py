@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
+import httpx
 
 from ..schemas import vps as vps_schema
 from ..db import models
@@ -49,17 +50,9 @@ def delete_vps(vps_id: int, db: Session = Depends(get_db), current_user: models.
     db.delete(db_vps)
     db.commit()
     return db_vps
-import httpx
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from app.db import models, session
-from app.schemas import vps as vps_schema
-from app.api.dependencies import get_current_user
-
-router = APIRouter()
 
 @router.post("/{vps_id}/test", response_model=vps_schema.VPSTestResult)
-async def test_vps_connection(vps_id: int, db: Session = Depends(session.get_db), current_user: models.User = Depends(get_current_user)):
+async def test_vps_connection(vps_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     """
     Test the connection to a VPS agent and check its FFmpeg installation.
     """
@@ -67,7 +60,6 @@ async def test_vps_connection(vps_id: int, db: Session = Depends(session.get_db)
     if not db_vps:
         raise HTTPException(status_code=404, detail="VPS not found")
     
-    # Pastikan pengguna memiliki akses ke VPS ini (baik pemilik atau admin)
     if db_vps.user_id != current_user.id and not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Not authorized to test this VPS")
 
@@ -79,7 +71,6 @@ async def test_vps_connection(vps_id: int, db: Session = Depends(session.get_db)
 
     async with httpx.AsyncClient(timeout=10.0) as client:
         try:
-            # 1. Test koneksi dasar
             response = await client.get(f"{agent_url}/health", headers=headers)
             response.raise_for_status()
             connection_status = {"status": "success", "details": response.json()}
@@ -88,7 +79,6 @@ async def test_vps_connection(vps_id: int, db: Session = Depends(session.get_db)
         except Exception as e:
             connection_status = {"status": "failure", "details": f"An unexpected error occurred: {e}"}
 
-        # 2. Test FFmpeg jika koneksi berhasil
         if connection_status["status"] == "success":
             try:
                 response = await client.post(f"{agent_url}/test/ffmpeg", headers=headers)
