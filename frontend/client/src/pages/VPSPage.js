@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import * as api from '../services/api';
-import '../css/modules/_admin_page.css'; // Re-using the glassmorphism style
-import '../css/modules/_modal.css'; // Import modal styles
+import '../css/modules/_admin_page.css';
+import '../css/modules/_modal.css';
 
 const VPSPage = () => {
     const [vpsList, setVpsList] = useState([]);
@@ -9,17 +9,17 @@ const VPSPage = () => {
     const [error, setError] = useState('');
     const [newVps, setNewVps] = useState({ name: '', ip_address: '', port: 8001, api_key: '' });
     const [isInstallGuideOpen, setIsInstallGuideOpen] = useState(false);
-    const [guideLang, setGuideLang] = useState('id'); // 'id' for Indonesian, 'en' for English
+    const [guideLang, setGuideLang] = useState('id');
     const [copySuccess, setCopySuccess] = useState('');
 
-    const installCommand = 'bash <(curl -sL https://raw.githubusercontent.com/maniqofgod/streamcurl-agent/main/install.sh)';
+    const installCommand = 'bash -c "$(wget -qO- https://raw.githubusercontent.com/maniqofgod/vps-agent/main/install.sh)"';
 
-    const copyToClipboard = () => {
-        navigator.clipboard.writeText(installCommand).then(() => {
-            setCopySuccess('Copied!');
+    const copyToClipboard = (text) => {
+        navigator.clipboard.writeText(text).then(() => {
+            setCopySuccess('Tersalin!');
             setTimeout(() => setCopySuccess(''), 2000);
         }, () => {
-            setCopySuccess('Failed to copy!');
+            setCopySuccess('Gagal menyalin!');
             setTimeout(() => setCopySuccess(''), 2000);
         });
     };
@@ -31,7 +31,7 @@ const VPSPage = () => {
             setVpsList(data);
             setError('');
         } catch (err) {
-            setError('Failed to fetch your VPS list.');
+            setError('Gagal mengambil daftar VPS Anda.');
             console.error(err);
         } finally {
             setIsLoading(false);
@@ -50,50 +50,46 @@ const VPSPage = () => {
     const handleAddVps = async (e) => {
         e.preventDefault();
         if (!newVps.name || !newVps.ip_address || !newVps.api_key) {
-            setError('All fields are required.');
+            setError('Semua bidang wajib diisi.');
             return;
         }
         try {
             await api.createVps(newVps);
             setNewVps({ name: '', ip_address: '', port: 8001, api_key: '' });
             setError('');
-            fetchUserVps(); // Refresh list
+            fetchUserVps();
         } catch (err) {
-            setError(err.response?.data?.detail || 'Failed to add VPS.');
+            setError(err.response?.data?.detail || 'Gagal menambahkan VPS.');
             console.error(err);
         }
     };
 
     const handleDeleteVps = async (vpsId) => {
-        if (window.confirm('Are you sure you want to delete this VPS?')) {
+        if (window.confirm('Apakah Anda yakin ingin menghapus VPS ini?')) {
             try {
                 await api.deleteVps(vpsId);
-                fetchUserVps(); // Refresh list
+                fetchUserVps();
             } catch (err) {
-                setError(err.response?.data?.detail || 'Failed to delete VPS.');
+                setError(err.response?.data?.detail || 'Gagal menghapus VPS.');
                 console.error(err);
             }
         }
     };
 
     if (isLoading) {
-        return <div className="loading-container">Loading VPS Management...</div>;
-    }
-
-    if (!vpsList) {
-        return <div className="loading-container">Could not load VPS list. Please try again later.</div>;
+        return <div className="loading-container">Memuat Manajemen VPS...</div>;
     }
 
     const guideContent = {
         id: {
             title: "Panduan Instalasi Agen VPS",
             p1: "Jalankan perintah tunggal ini di VPS baru (disarankan Ubuntu 20.04+):",
-            p2: "Setelah skrip selesai, itu akan menampilkan Alamat IP, Port, dan Kunci API. Gunakan informasi tersebut untuk mengisi formulir \"Tambah VPS Baru\" di sini."
+            p2: "Setelah skrip selesai, itu akan menampilkan Kunci API. Gunakan informasi tersebut untuk mengisi formulir \"Tambah VPS Baru\" di sini."
         },
         en: {
             title: "VPS Agent Installation Guide",
             p1: "Run this single command on a new VPS (Ubuntu 20.04+ recommended):",
-            p2: "After the script finishes, it will display the IP Address, Port, and API Key. Use that information to fill out the \"Add New VPS\" form here."
+            p2: "After the script finishes, it will display the API Key. Use that information to fill out the \"Add New VPS\" form here."
         }
     };
 
@@ -114,8 +110,8 @@ const VPSPage = () => {
                             <p>{guideContent[guideLang].p1}</p>
                             <div className="command-container">
                                 <pre><code>{installCommand}</code></pre>
-                                <button onClick={copyToClipboard} className="copy-btn">
-                                    {copySuccess || 'Copy'}
+                                <button onClick={() => copyToClipboard(installCommand)} className="copy-btn">
+                                    {copySuccess || 'Salin'}
                                 </button>
                             </div>
                             <p>{guideContent[guideLang].p2}</p>
@@ -141,26 +137,13 @@ const VPSPage = () => {
                         <input type="text" name="api_key" placeholder="API Key" value={newVps.api_key} onChange={handleNewVpsChange} required />
                         <button type="submit" className="glass-button">Add VPS</button>
                     </form>
-<div className="service-commands" style={{ marginTop: '20px' }}>
+                    <div className="service-commands" style={{ marginTop: '20px' }}>
                         <h3 className="card-subtitle">Perintah Manajemen Layanan</h3>
-                        <p>Gunakan perintah ini di terminal VPS Anda untuk mengelola agen:</p>
+                        <p>Gunakan perintah ini di terminal VPS Anda untuk mengelola agen (di dalam direktori `~/streamcurl-vps-agent`):</p>
                         <ul>
-                            <li>
-                                <strong>Periksa Status:</strong>
-                                <code>sudo systemctl status streamcurl-agent</code>
-                            </li>
-                            <li>
-                                <strong>Lihat Log Langsung:</strong>
-                                <code>sudo journalctl -u streamcurl-agent -f</code>
-                            </li>
-                            <li>
-                                <strong>Mulai Ulang Agen:</strong>
-                                <code>sudo systemctl restart streamcurl-agent</code>
-                            </li>
-                             <li>
-                                <strong>Hentikan Agen:</strong>
-                                <code>sudo systemctl stop streamcurl-agent</code>
-                            </li>
+                            <li><strong>Periksa Status & Log:</strong> <code>docker-compose logs -f</code></li>
+                            <li><strong>Mulai Ulang Agen:</strong> <code>docker-compose restart</code></li>
+                            <li><strong>Hentikan Agen:</strong> <code>docker-compose down</code></li>
                         </ul>
                     </div>
                 </div>
@@ -174,7 +157,7 @@ const VPSPage = () => {
                                 <button onClick={() => handleDeleteVps(vps.id)} className="delete-btn">Delete</button>
                             </li>
                         )) : (
-                            <p>You haven't added any VPS yet.</p>
+                            <p>Anda belum menambahkan VPS.</p>
                         )}
                     </ul>
                 </div>

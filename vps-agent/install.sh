@@ -1,140 +1,109 @@
 #!/bin/bash
 
-# Skrip untuk menginstal dan mengkonfigurasi Agen VPS untuk Platform Streaming
-# Cukup jalankan skrip ini di VPS Linux baru (disarankan Ubuntu 20.04+).
+# Hentikan skrip jika terjadi error
+set -e
 
 # --- Konfigurasi ---
-REPO_URL="https://github.com/maniqofgod/streamcurl-agent.git"
-# --------------------
+INSTALL_DIR="$HOME/streamcurl-vps-agent"
+REPO_URL="https://raw.githubusercontent.com/maniqofgod/vps-agent/main"
+FILES_TO_DOWNLOAD=("docker-compose.yml" "Dockerfile" "main.py" "requirements.txt")
 
-# Warna untuk output
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
-
-# Fungsi untuk mencetak pesan
-log_info() {
-    echo -e "${GREEN}[INFO] $1${NC}"
+# --- Fungsi Bantuan ---
+print_info() {
+    echo -e "\e[34mINFO: $1\e[0m"
 }
 
-log_warn() {
-    echo -e "${YELLOW}[WARN] $1${NC}"
+print_success() {
+    echo -e "\e[32mSUCCESS: $1\e[0m"
 }
 
-log_error() {
-    echo -e "${RED}[ERROR] $1${NC}"
+print_error() {
+    echo -e "\e[31mERROR: $1\e[0m"
 }
 
-# Pastikan skrip tidak dijalankan sebagai root secara langsung
-if [ "$EUID" -eq 0 ]; then
-  log_error "Jangan jalankan skrip ini sebagai root. Jalankan sebagai pengguna biasa, skrip akan meminta password sudo jika diperlukan."
-  exit 1
+print_warning() {
+    echo -e "\e[33mWARNING: $1\e[0m"
+}
+
+# --- Logika Instalasi Dependensi ---
+install_docker() {
+    print_info "Docker tidak ditemukan. Memulai instalasi Docker..."
+    sudo apt-get update
+    sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+    sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+    sudo apt-get update
+    sudo apt-get install -y docker-ce
+    sudo usermod -aG docker ${USER}
+    print_success "Docker berhasil diinstal. Anda mungkin perlu logout dan login kembali agar perubahan grup diterapkan."
+}
+
+install_docker_compose() {
+    print_info "Docker Compose tidak ditemukan. Memulai instalasi Docker Compose..."
+    sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    sudo chmod +x /usr/local/bin/docker-compose
+    print_success "Docker Compose berhasil diinstal."
+}
+
+# --- Logika Utama ---
+
+# 1. Periksa dan instal dependensi
+print_info "Memeriksa dependensi..."
+if ! command -v docker &> /dev/null; then
+    install_docker
 fi
+if ! command -v docker-compose &> /dev/null; then
+    install_docker_compose
+fi
+if ! command -v wget &> /dev/null; then
+    print_info "wget tidak ditemukan, menginstal..."
+    sudo apt-get update && sudo apt-get install -y wget
+fi
+print_success "Semua dependensi siap."
 
-log_info "Memulai penyiapan Agen VPS..."
+# 2. Buat direktori instalasi dan unduh file
+print_info "Membuat direktori instalasi di $INSTALL_DIR..."
+mkdir -p "$INSTALL_DIR"
+cd "$INSTALL_DIR"
 
-# 1. Instal Dependensi Sistem
-log_info "Memeriksa dan menginstal dependensi sistem (git, ffmpeg, python3, pip)..."
-sudo apt-get update > /dev/null 2>&1
-if ! command -v git &> /dev/null || ! command -v ffmpeg &> /dev/null || ! command -v python3 &> /dev/null || ! command -v pip3 &> /dev/null; then
-    sudo apt-get install -y git ffmpeg python3-pip
+print_info "Mengunduh file yang diperlukan dari GitHub..."
+for file in "${FILES_TO_DOWNLOAD[@]}"; do
+    wget -q "$REPO_URL/$file" -O "$file"
+done
+print_success "Semua file berhasil diunduh."
+
+# 3. Siapkan file .env dengan API Key otomatis
+if [ ! -f .env ]; then
+    print_info "Membuat file .env dengan API Key baru..."
+    API_KEY=$(openssl rand -hex 32)
+    echo "AGENT_API_KEY=$API_KEY" > .env
+    print_success "File .env berhasil dibuat."
 else
-    log_info "Dependensi sistem sudah terinstal."
+    print_info "File .env sudah ada."
 fi
 
-# 2. Klona atau Perbarui Repositori Aplikasi
-REPO_NAME=$(basename -s .git "$REPO_URL")
-AGENT_DIR="/home/$(whoami)/$REPO_NAME"
-
-log_info "Mengklona atau memperbarui repositori dari $REPO_URL..."
-if [ -d "$AGENT_DIR/.git" ]; then
-    log_info "Direktori repositori sudah ada. Menjalankan 'git pull'..."
-    cd "$AGENT_DIR"
-    if ! git pull; then
-        log_error "Gagal menjalankan 'git pull'. Harap periksa repositori Anda untuk konflik atau masalah lainnya."
-        exit 1
-    fi
+# 4. Bangun dan jalankan container Docker
+print_info "Membangun dan menjalankan agen VPS... Ini mungkin memakan waktu beberapa menit."
+if groups ${USER} | grep &>/dev/null '\bdocker\b'; then
+    docker-compose up --build -d
 else
-    log_info "Mengklona repositori baru ke $AGENT_DIR..."
-    if ! git clone "$REPO_URL" "$AGENT_DIR"; then
-        log_error "Gagal mengklona repositori. Periksa URL dan pastikan repositori bersifat publik."
-        exit 1
-    fi
+    print_warning "Menjalankan docker-compose dengan sudo karena Anda mungkin belum login ulang."
+    sudo docker-compose up --build -d
 fi
 
-# Pindah ke direktori agen
-log_info "Masuk ke direktori agen di $AGENT_DIR"
-cd "$AGENT_DIR" || { log_error "Gagal masuk ke direktori agen di $AGENT_DIR."; exit 1; }
+# 5. Tampilkan informasi penting
+AGENT_API_KEY=$(grep AGENT_API_KEY .env | cut -d '=' -f2)
 
-# 3. Instal Dependensi Python
-log_info "Menginstal dependensi Python dari requirements.txt..."
-pip3 install -r requirements.txt > /dev/null 2>&1
-
-# 4. Konfigurasi Kunci API
-log_info "Konfigurasi Kunci API..."
-read -p "Masukkan Kunci API yang ingin Anda gunakan (biarkan kosong untuk membuat secara acak): " USER_API_KEY
-if [ -z "$USER_API_KEY" ]; then
-    log_info "Membuat Kunci API acak..."
-    USER_API_KEY=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
-fi
-
-tee .env > /dev/null <<EOF
-VPS_AGENT_API_KEY=$USER_API_KEY
-EOF
-
-# 5. Buat Layanan Systemd
-AGENT_PORT=8001
-SERVICE_FILE="/etc/systemd/system/streamcurl-agent.service"
-CURRENT_USER=$(whoami)
-
-log_info "Membuat layanan systemd..."
-
-SERVICE_CONTENT="[Unit]
-Description=VPS Agent for Streaming Platform
-After=network.target
-
-[Service]
-User=$CURRENT_USER
-Group=$(id -gn "$CURRENT_USER")
-WorkingDirectory=$AGENT_DIR
-# Muat variabel lingkungan dari file .env
-EnvironmentFile=$AGENT_DIR/.env
-ExecStart=$(which python3) -m uvicorn main:app --host 0.0.0.0 --port $AGENT_PORT
-Restart=always
-RestartSec=3
-
-[Install]
-WantedBy=multi-user.target"
-
-echo "$SERVICE_CONTENT" | sudo tee $SERVICE_FILE > /dev/null
-
-log_info "Mengaktifkan dan memulai layanan streamcurl-agent..."
-sudo systemctl daemon-reload
-sudo systemctl enable streamcurl-agent.service > /dev/null 2>&1
-sudo systemctl restart streamcurl-agent.service
-
-# 6. Konfigurasi Firewall
-log_info "Mengkonfigurasi firewall untuk mengizinkan port $AGENT_PORT..."
-sudo ufw allow $AGENT_PORT/tcp > /dev/null 2>&1
-sudo ufw reload > /dev/null 2>&1
-
-# 7. Deteksi Sumber Daya Sistem
-log_info "Mendeteksi sumber daya sistem..."
-CPU_CORES=$(nproc)
-# Dapatkan total RAM dalam MB dan bulatkan ke GB terdekat
-TOTAL_RAM_MB=$(free -m | awk '/^Mem:/{print $2}')
-TOTAL_RAM_GB=$(( (TOTAL_RAM_MB + 512) / 1024 )) # Pembulatan ke atas
-
-# Selesai
-log_info "Penyiapan Selesai!"
-echo -e "--------------------------------------------------"
-echo -e "${YELLOW}Harap simpan informasi berikut di tempat yang aman dan masukkan ke dalam platform Anda:${NC}"
-echo -e "  ${GREEN}Alamat IP VPS: $(hostname -I | awk '{print $1}')${NC}"
-echo -e "  ${GREEN}Port Agen: $AGENT_PORT${NC}"
-echo -e "  ${GREEN}Kunci API Anda: $USER_API_KEY${NC}"
-echo -e "  ${YELLOW}--- Spesifikasi VPS Terdeteksi ---${NC}"
-echo -e "  ${GREEN}Total Core CPU: $CPU_CORES${NC}"
-echo -e "  ${GREEN}Total RAM: $TOTAL_RAM_GB GB${NC}"
-echo -e "--------------------------------------------------"
-echo -e "Anda dapat memeriksa status layanan dengan menjalankan: ${YELLOW}sudo systemctl status streamcurl-agent${NC}"
+clear
+print_success "Instalasi selesai! Agen VPS Streamcurl sekarang berjalan."
+print_warning "ANDA MUNGKIN PERLU LOGOUT DAN LOGIN KEMBALI untuk menjalankan perintah docker tanpa sudo."
+echo "------------------------------------------------------------------"
+print_warning "SIMPAN API KEY INI DI TEMPAT YANG AMAN!"
+echo "Anda akan membutuhkannya untuk menghubungkan VPS ini dari panel admin Streamcurl."
+echo ""
+echo "   AGENT_API_KEY: $AGENT_API_KEY"
+echo ""
+echo "------------------------------------------------------------------"
+print_info "Direktori Instalasi: $INSTALL_DIR"
+print_info "Untuk melihat log, jalankan: cd $INSTALL_DIR && docker-compose logs -f"
+print_info "Untuk menghentikan agen, jalankan: cd $INSTALL_DIR && docker-compose down"

@@ -474,3 +474,52 @@
     font-weight: bold;
     color: var(--text-primary);
 }
+
+/* Installation Guide and Code Block Styles */
+.installation-guide {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin-top: 15px;
+    border-radius: 5px;
+}
+
+.installation-guide h5, .installation-guide h6 {
+    color: #333;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.code-block-container {
+    position: relative;
+    background-color: #2d2d2d;
+    color: #f8f8f2;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.code-block-container pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.code-block-container .copy-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #555;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.8em;
+    transition: background-color 0.2s;
+}
+
+.code-block-container .copy-btn:hover {
+    background-color: #777;
+}

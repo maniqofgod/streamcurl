@@ -1,17 +1,28 @@
-# Use an official Python runtime as a parent image
-FROM python:3.11-slim
+# Gunakan image Python versi slim sebagai dasar
+FROM python:3.9-slim-bullseye
 
-# Set the working directory in the container
-WORKDIR /usr/src/app
+# Tetapkan direktori kerja di dalam container
+WORKDIR /app
 
-# Copy the requirements file into the container at /usr/src/app
-COPY requirements.txt ./
+# Perbarui package list dan install ffmpeg
+# ffmpeg diperlukan untuk menjalankan proses streaming
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# Salin file requirements.txt terlebih dahulu untuk caching layer
+COPY requirements.txt .
 
-# Copy the rest of the application's code into the container at /usr/src/app
+# Install dependensi Python
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
+
+# Salin sisa kode aplikasi
 COPY . .
 
-# Run uvicorn when the container launches
+# Expose port yang akan digunakan oleh aplikasi (default 8001)
+EXPOSE 8001
+
+# Perintah untuk menjalankan aplikasi saat container dimulai
+# Menggunakan uvicorn untuk menjalankan aplikasi FastAPI
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]

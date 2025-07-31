@@ -1,213 +1,177 @@
-from fastapi import FastAPI, Depends, HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import subprocess
-import os
+import asyncio
 import logging
-import signal
-from pathlib import Path
-import requests
-import threading
+import os
+import subprocess
+from typing import Dict, List, Optional
 
-# Konfigurasi logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+import psutil
+import requests
+from fastapi import FastAPI, Header, HTTPException, BackgroundTasks, Depends
+from pydantic import BaseModel, Field
+
+# Konfigurasi Logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Ambil API Key dari environment variable untuk keamanan
-API_KEY = os.getenv("VPS_AGENT_API_KEY", "change-this-in-production")
-PID_DIR = Path("/tmp/stream_pids")
-PID_DIR.mkdir(exist_ok=True)
+# Inisialisasi Aplikasi FastAPI
+app = FastAPI(title="VPS Streaming Agent", version="1.0.0")
 
-app = FastAPI()
+# Kunci API untuk mengamankan endpoint, diambil dari environment variable
+AGENT_API_KEY = os.getenv("AGENT_API_KEY", "a-very-secret-key")
 
-# Tambahkan CORS Middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Mengizinkan semua origin. Batasi ini di produksi jika memungkinkan.
-    allow_credentials=True,
-    allow_methods=["*"],  # Mengizinkan semua metode (GET, POST, dll.)
-    allow_headers=["*"],  # Mengizinkan semua header
-)
+# Struktur data untuk menyimpan proses yang sedang berjalan
+# Key: stream_id (int), Value: Popen object
+running_processes: Dict[int, subprocess.Popen] = {}
 
-# Kamus untuk menyimpan proses yang sedang berjalan
-# Key: stream_id, Value: subprocess.Popen object
-stream_processes = {}
+# --- Model Data (Pydantic) ---
 
-class StreamStartRequest(BaseModel):
-    ffmpeg_command: list
+class StreamPayload(BaseModel):
+    stream_id: int = Field(..., description="ID unik untuk stream.")
+    ffmpeg_command: List[str] = Field(..., description="Perintah FFmpeg yang akan dieksekusi.")
+    callback_url: str = Field(..., description="URL untuk mengirim pembaruan status.")
+    callback_api_key: str = Field(..., description="Kunci API untuk otentikasi callback.")
+
+class StopPayload(BaseModel):
+    stream_id: int = Field(..., description="ID unik untuk stream yang akan dihentikan.")
+
+class StatusUpdatePayload(BaseModel):
     stream_id: int
-    callback_url: str | None = None
-    callback_api_key: str | None = None
+    status: str
+    details: Optional[str] = None
 
-class StreamStopRequest(BaseModel):
-    stream_id: int
+# --- Fungsi Helper & Dependensi ---
 
-# Dependensi untuk memeriksa API Key
-async def verify_api_key(request: Request):
-    auth_header = request.headers.get("Authorization")
-    logger.info(f"Menerima permintaan dari {request.client.host} dengan header: {request.headers}")
+def get_api_key(authorization: str = Header(None)):
+    """Dependensi untuk memeriksa header otentikasi."""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header is missing")
     
-    if not auth_header or not auth_header.startswith("Bearer "):
-        logger.warning(f"Upaya akses tidak sah dari IP: {request.client.host}. Header 'Authorization' hilang atau formatnya salah.")
-        raise HTTPException(status_code=403, detail="Akses ditolak: Header 'Authorization' tidak valid.")
+    parts = authorization.split()
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        raise HTTPException(status_code=401, detail="Invalid authorization header format")
         
-    provided_key = auth_header.split(" ")[1]
-    
-    if provided_key != API_KEY:
-        # Log a masked version of the key for security
-        masked_key = f"{provided_key[:4]}...{provided_key[-4:]}" if len(provided_key) > 8 else provided_key
-        logger.warning(
-            f"Upaya akses tidak sah dari IP: {request.client.host}. "
-            f"Kunci yang diberikan ({masked_key}) tidak cocok dengan kunci yang diharapkan."
-        )
-        raise HTTPException(status_code=403, detail="Akses ditolak: API Key tidak valid.")
-        
-    return True
+    if parts[1] != AGENT_API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API Key")
+    return parts[1]
 
-def get_pid_file(stream_id: int) -> Path:
-    return PID_DIR / f"stream_{stream_id}.pid"
-
-def is_process_running(pid: int) -> bool:
-    """Memeriksa apakah proses dengan PID yang diberikan sedang berjalan."""
-    if pid is None:
-        return False
+async def send_status_update(payload: StatusUpdatePayload, url: str, api_key: str):
+    """Mengirim pembaruan status ke backend utama."""
+    headers = {"Authorization": f"Bearer {api_key}"}
     try:
-        # Mengirim sinyal 0 tidak membunuh proses, tetapi akan menimbulkan error jika proses tidak ada
-        os.kill(pid, 0)
-    except OSError:
-        return False
+        # Menggunakan httpx sebagai pengganti requests untuk async
+        import httpx
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, json=payload.dict(), headers=headers, timeout=10)
+            response.raise_for_status()
+            logger.info(f"Successfully sent status '{payload.status}' for stream {payload.stream_id} to {url}")
+    except ImportError:
+        logger.error("httpx is not installed. Cannot send status update.")
+    except httpx.RequestError as e:
+        logger.error(f"Failed to send status update for stream {payload.stream_id}: {e}")
+
+async def monitor_stream_process(payload: StreamPayload):
+    """Memantau proses FFmpeg dan mengirim callback saat selesai."""
+    stream_id = payload.stream_id
+    process = running_processes.get(stream_id)
+    
+    if not process:
+        logger.error(f"Monitor: Process for stream {stream_id} not found.")
+        return
+
+    await asyncio.sleep(5)
+    if process.poll() is None:
+        status_payload = StatusUpdatePayload(stream_id=stream_id, status="LIVE", details="Stream is now live on VPS.")
+        await send_status_update(status_payload, payload.callback_url, payload.callback_api_key)
+
+    stdout, stderr = await process.communicate()
+    
+    running_processes.pop(stream_id, None)
+    
+    if process.returncode == 0:
+        final_status = "Idle"
+        details = "Stream completed successfully."
     else:
-        return True
+        error_output = stderr.decode('utf-8', errors='ignore').strip()
+        final_status = "Error"
+        details = f"FFmpeg failed on VPS: {error_output[-500:]}"
 
-def send_callback(url: str, api_key: str, stream_id: int, status: str, details: str):
-    """Mengirim pembaruan status kembali ke backend dalam thread terpisah."""
+    final_status_payload = StatusUpdatePayload(stream_id=stream_id, status=final_status, details=details)
+    await send_status_update(final_status_payload, payload.callback_url, payload.callback_api_key)
+
+
+def stop_process_tree(pid: int):
+    """Menghentikan proses dan semua proses turunannya."""
     try:
-        headers = {"X-Agent-Token": api_key}
-        payload = {"stream_id": stream_id, "status": status, "details": details}
-        requests.post(url, json=payload, headers=headers, timeout=15)
-        logger.info(f"Callback terkirim ke {url} untuk stream {stream_id} dengan status {status}")
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Gagal mengirim callback ke {url} untuk stream {stream_id}: {e}")
+        parent = psutil.Process(pid)
+        children = parent.children(recursive=True)
+        for child in children:
+            child.terminate()
+        parent.terminate()
+        gone, still_alive = psutil.wait_procs(children + [parent], timeout=3)
+        for p in still_alive:
+            p.kill()
+    except psutil.NoSuchProcess:
+        pass # Proses sudah tidak ada, tidak masalah
 
-def log_ffmpeg_output(process: subprocess.Popen, stream_id: int):
-    """Membaca dan mencatat output dari proses FFmpeg."""
-    for line in iter(process.stdout.readline, ''):
-        logger.info(f"FFMPEG (stream {stream_id}): {line.strip()}")
-    process.stdout.close()
-    return_code = process.wait()
-    if return_code:
-        logger.error(f"Proses FFmpeg untuk stream {stream_id} berhenti dengan kode error: {return_code}")
+# --- Endpoint API ---
 
-@app.post("/stream/start", dependencies=[Depends(verify_api_key)])
-async def start_stream(request: StreamStartRequest):
-    stream_id = request.stream_id
-    pid_file = get_pid_file(stream_id)
+@app.on_event("startup")
+async def startup_event():
+    logger.info("VPS Streaming Agent is starting up.")
 
-    if pid_file.exists():
-        try:
-            pid = int(pid_file.read_text())
-            if is_process_running(pid):
-                logger.warning(f"Stream {stream_id} sudah berjalan dengan PID {pid}.")
-                raise HTTPException(status_code=409, detail=f"Stream {stream_id} sudah berjalan.")
-        except (ValueError, FileNotFoundError):
-            pass
-
-    command = request.ffmpeg_command
-    logger.info(f"Menerima permintaan untuk memulai stream {stream_id} dengan perintah: {' '.join(command)}")
-
-    try:
-        process = subprocess.Popen(
-            command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            text=True, bufsize=1, universal_newlines=True
-        )
-        
-        stream_processes[stream_id] = process
-        pid_file.write_text(str(process.pid))
-        
-        # Mulai thread untuk mencatat output FFmpeg
-        log_thread = threading.Thread(target=log_ffmpeg_output, args=(process, stream_id))
-        log_thread.start()
-        
-        logger.info(f"Proses FFmpeg untuk stream {stream_id} dimulai dengan PID: {process.pid}")
-
-        if request.callback_url and request.callback_api_key:
-            threading.Thread(
-                target=send_callback,
-                args=(request.callback_url, request.callback_api_key, stream_id, "LIVE", f"Stream started on VPS with PID {process.pid}")
-            ).start()
-
-        return {"message": "Proses streaming berhasil dimulai.", "pid": process.pid, "stream_id": stream_id}
-    except Exception as e:
-        logger.error(f"Gagal memulai proses FFmpeg untuk stream {stream_id}: {e}")
-        
-        if request.callback_url and request.callback_api_key:
-             threading.Thread(
-                target=send_callback,
-                args=(request.callback_url, request.callback_api_key, stream_id, "Error", str(e))
-            ).start()
-
-        raise HTTPException(status_code=500, detail=f"Gagal memulai FFmpeg: {str(e)}")
-
-@app.post("/stream/stop", dependencies=[Depends(verify_api_key)])
-async def stop_stream(request: StreamStopRequest):
-    stream_id = request.stream_id
-    pid_file = get_pid_file(stream_id)
-    
-    logger.info(f"Menerima permintaan untuk menghentikan stream {stream_id}")
-
-    pid = None
-    if pid_file.exists():
-        try:
-            pid = int(pid_file.read_text())
-        except (ValueError, FileNotFoundError):
-            logger.warning(f"File PID untuk stream {stream_id} rusak atau tidak dapat dibaca.")
-    
-    if not pid or not is_process_running(pid):
-        if pid_file.exists():
-            pid_file.unlink() # Hapus file PID yang usang
-        logger.info(f"Stream {stream_id} tidak sedang berjalan atau PID tidak ditemukan.")
-        return {"message": "Stream tidak sedang berjalan."}
-
-    try:
-        os.kill(pid, signal.SIGTERM)
-        logger.info(f"Sinyal SIGTERM dikirim ke proses {pid} untuk stream {stream_id}.")
-        
-        # Hapus dari pelacakan
-        if stream_id in stream_processes:
-            del stream_processes[stream_id]
-        if pid_file.exists():
-            pid_file.unlink()
-            
-        return {"message": f"Permintaan penghentian untuk stream {stream_id} berhasil dikirim."}
-    except OSError as e:
-        logger.error(f"Gagal menghentikan proses {pid} untuk stream {stream_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Gagal menghentikan proses: {e}")
-
-@app.get("/stream/status/{stream_id}", dependencies=[Depends(verify_api_key)])
-async def get_stream_status(stream_id: int):
-    pid_file = get_pid_file(stream_id)
-    
-    if not pid_file.exists():
-        return {"status": "Idle", "stream_id": stream_id}
-
-    try:
-        pid = int(pid_file.read_text())
-        if is_process_running(pid):
-            return {"status": "Running", "stream_id": stream_id, "pid": pid}
-        else:
-            # Proses tidak berjalan, file PID usang
-            logger.warning(f"File PID usang ditemukan untuk stream {stream_id} (PID: {pid}). Menghapus file.")
-            pid_file.unlink()
-            return {"status": "Idle", "stream_id": stream_id}
-    except (ValueError, FileNotFoundError):
-        return {"status": "Idle", "stream_id": stream_id}
-
-@app.get("/health")
+@app.get("/health", summary="Health Check")
 async def health_check():
-    """Endpoint sederhana untuk memeriksa apakah agen berjalan."""
-    return {"status": "ok"}
+    """Endpoint untuk memeriksa apakah agen berjalan."""
+    return {"status": "ok", "running_streams": len(running_processes)}
+
+@app.post("/test/ffmpeg", summary="Test FFmpeg command")
+async def test_ffmpeg(api_key: str = Depends(get_api_key)):
+    """Menjalankan 'ffmpeg -version' untuk memeriksa apakah FFmpeg dapat dieksekusi."""
+    try:
+        process = await asyncio.create_subprocess_exec(
+            'ffmpeg', '-version',
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        stdout, stderr = await process.communicate()
+        if process.returncode == 0:
+            return {"status": "success", "version": stdout.decode().split('\n')[0]}
+        else:
+            raise HTTPException(status_code=500, detail=f"FFmpeg execution failed: {stderr.decode()}")
+    except FileNotFoundError:
+        raise HTTPException(status_code=500, detail="FFmpeg command not found.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
+
+@app.post("/stream/start", summary="Start a new stream")
+async def start_stream(payload: StreamPayload, background_tasks: BackgroundTasks, api_key: str = Depends(get_api_key)):
+    stream_id = payload.stream_id
+    if stream_id in running_processes:
+        process_to_stop = running_processes.pop(stream_id)
+        stop_process_tree(process_to_stop.pid)
+
+    try:
+        process = await asyncio.create_subprocess_exec(
+            *payload.ffmpeg_command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        running_processes[stream_id] = process
+        background_tasks.add_task(monitor_stream_process, payload)
+        return {"status": "success", "message": f"Stream {stream_id} started.", "pid": process.pid}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to start FFmpeg: {e}")
+
+@app.post("/stream/stop", summary="Stop a running stream")
+async def stop_stream(payload: StopPayload, api_key: str = Depends(get_api_key)):
+    stream_id = payload.stream_id
+    if stream_id not in running_processes:
+        raise HTTPException(status_code=404, detail=f"Stream {stream_id} not found.")
+    process = running_processes.pop(stream_id)
+    stop_process_tree(process.pid)
+    return {"status": "success", "message": f"Stream {stream_id} stopped."}
 
 if __name__ == "__main__":
     import uvicorn
-    logger.info("Memulai VPS Agent...")
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    port = int(os.getenv("PORT", "8001"))
+    uvicorn.run(app, host="0.0.0.0", port=port)
