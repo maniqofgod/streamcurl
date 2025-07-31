@@ -11,6 +11,10 @@ const VPSPage = () => {
     const [isInstallGuideOpen, setIsInstallGuideOpen] = useState(false);
     const [guideLang, setGuideLang] = useState('id');
     const [copySuccess, setCopySuccess] = useState('');
+    
+    const [editingVpsId, setEditingVpsId] = useState(null);
+    const [editingVpsData, setEditingVpsData] = useState({ api_key: '' });
+    const [testResult, setTestResult] = useState(null);
 
     const installCommand = 'bash -c "$(wget -qO- https://raw.githubusercontent.com/maniqofgod/vps-agent/main/install.sh)"';
 
@@ -74,6 +78,53 @@ const VPSPage = () => {
                 console.error(err);
             }
         }
+    };
+
+    const handleTestVps = async (vpsId) => {
+        setTestResult({ vpsId, loading: true });
+        try {
+            const result = await api.testVpsConnection(vpsId);
+            setTestResult({ vpsId, result });
+        } catch (err) {
+            const errorDetail = err.response?.data?.detail || 'Failed to run test.';
+            setTestResult({ vpsId, error: errorDetail });
+            console.error(err);
+        }
+    };
+
+    const handleEditClick = (vps) => {
+        setEditingVpsId(vps.id);
+        setEditingVpsData({ api_key: vps.api_key });
+    };
+
+    const handleEditChange = (e) => {
+        setEditingVpsData({ ...editingVpsData, [e.target.name]: e.target.value });
+    };
+
+    const handleUpdateVps = async (vpsId) => {
+        try {
+            await api.updateVps(vpsId, editingVpsData);
+            setEditingVpsId(null);
+            fetchUserVps();
+        } catch (err) {
+            setError(err.response?.data?.detail || 'Gagal memperbarui VPS.');
+            console.error(err);
+        }
+    };
+
+    const renderTestResult = () => {
+        if (!testResult) return null;
+        if (testResult.loading) return <p>Testing VPS...</p>;
+        if (testResult.error) return <p className="error">Error: {testResult.error}</p>;
+
+        const { connection, ffmpeg } = testResult.result;
+        return (
+            <div className="test-results" style={{ marginTop: '15px' }}>
+                <h4>Test Results for VPS ID: {testResult.vpsId}</h4>
+                <p><strong>Connection:</strong> {connection.status} - {typeof connection.details === 'object' ? JSON.stringify(connection.details) : connection.details}</p>
+                <p><strong>FFmpeg:</strong> {ffmpeg.status} - {typeof ffmpeg.details === 'object' ? JSON.stringify(ffmpeg.details) : ffmpeg.details}</p>
+            </div>
+        );
     };
 
     if (isLoading) {
@@ -153,13 +204,34 @@ const VPSPage = () => {
                     <ul className="secret-list">
                         {vpsList.length > 0 ? vpsList.map(vps => (
                             <li key={vps.id}>
-                                <span>{vps.name} ({vps.ip_address}:{vps.port}) </span>
-                                <button onClick={() => handleDeleteVps(vps.id)} className="delete-btn">Delete</button>
+                                {editingVpsId === vps.id ? (
+                                    <div className="edit-vps-form">
+                                        <input
+                                            type="text"
+                                            name="api_key"
+                                            value={editingVpsData.api_key}
+                                            onChange={handleEditChange}
+                                            placeholder="New API Key"
+                                        />
+                                        <button onClick={() => handleUpdateVps(vps.id)} className="glass-button-small">Save</button>
+                                        <button onClick={() => setEditingVpsId(null)} className="glass-button-small cancel">Cancel</button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <span>{vps.name} ({vps.ip_address}:{vps.port})</span>
+                                        <div className="vps-actions">
+                                            <button onClick={() => handleTestVps(vps.id)} className="glass-button-small">Test</button>
+                                            <button onClick={() => handleEditClick(vps)} className="glass-button-small">Edit</button>
+                                            <button onClick={() => handleDeleteVps(vps.id)} className="delete-btn">Delete</button>
+                                        </div>
+                                    </>
+                                )}
                             </li>
                         )) : (
                             <p>Anda belum menambahkan VPS.</p>
                         )}
                     </ul>
+                    {renderTestResult()}
                 </div>
             </div>
         </div>
