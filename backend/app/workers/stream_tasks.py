@@ -60,7 +60,14 @@ def generate_stream_thumbnail(stream_id: int):
         thumbnail_path = os.path.join(thumbnail_dir, thumbnail_filename)
 
         # Build the specific FFmpeg command for rendering one frame
-        command = build_ffmpeg_thumbnail_command(stream, new_settings, thumbnail_path)
+        is_vps_stream = stream.vps_id is not None
+        command = build_ffmpeg_thumbnail_command(
+            stream, 
+            new_settings, 
+            thumbnail_path,
+            is_vps_stream=is_vps_stream,
+            public_url=PUBLIC_BACKEND_URL if is_vps_stream else None
+        )
         
         logger.info(f"Executing thumbnail command for stream {stream_id}: {' '.join(command)}")
         process = subprocess.run(command, capture_output=True, text=True)
@@ -115,7 +122,7 @@ def update_stream_status(db: Session, stream_id: int, status: str, details: str 
 def stop_stream_on_vps(vps: VPS, stream_id: int):
     """Kirim permintaan untuk menghentikan stream pada agen VPS."""
     try:
-        url = f"http://{vps.ip_address}:8001/stream/stop"
+        url = f"http://{vps.ip_address}:{vps.port}/stream/stop"
         headers = {"Authorization": f"Bearer {vps.api_key}"}
         payload = {"stream_id": stream_id}
         
@@ -300,7 +307,7 @@ def stream_video(self, stream_id: int, is_preview: bool = False, public_url: str
                 logger.warning(f"Could not stop pre-existing stream {stream_id} (this can be ignored): {e}")
             
             try:
-                agent_url = f"http://{stream.vps.ip_address}:8001/stream/start"
+                agent_url = f"http://{stream.vps.ip_address}:{stream.vps.port}/stream/start"
                 headers = {"Authorization": f"Bearer {stream.vps.api_key}"}
                 
                 clean_base_url = effective_base_url.rstrip('/')
