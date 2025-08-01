@@ -172,13 +172,18 @@ def update_stream(stream_id: int, stream: StreamUpdate, db: Session = Depends(ge
         raise HTTPException(status_code=403, detail="Not authorized to update this stream")
     
     update_data = stream.dict(exclude_unset=True)
+    logger.info(f"--- DEBUG: UPDATE_STREAM --- Data yang diterima untuk stream {stream_id}: {update_data}")
     
-    if "vps_id" in update_data and update_data["vps_id"] is not None:
-        vps = db.query(VPS).filter(VPS.id == update_data["vps_id"])
-        if current_user.role != "admin":
-            vps = vps.filter(VPS.user_id == current_user.id)
-        if not vps.first():
-            raise HTTPException(status_code=404, detail="VPS not found or you don't have permission to use it.")
+    # Secara eksplisit menangani dan menetapkan vps_id
+    if "vps_id" in update_data:
+        vps_id_value = update_data.pop("vps_id")
+        if vps_id_value is not None:
+            vps = db.query(VPS).filter(VPS.id == vps_id_value)
+            if current_user.role != "admin":
+                vps = vps.filter(VPS.user_id == current_user.id)
+            if not vps.first():
+                raise HTTPException(status_code=404, detail="VPS not found or you don't have permission to use it.")
+        db_stream.vps_id = vps_id_value
             
     if "settings" in update_data and update_data["settings"] is not None:
         existing_settings = copy.deepcopy(db_stream.settings) if db_stream.settings else {}
