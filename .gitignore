@@ -1,0 +1,25 @@
+# Environments
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/
+.venv/
+env/
+
+# Node.js
+node_modules/
+build/
+dist/
+.npm/
+
+# Editor-specific
+.vscode/
+.idea/
+
+# Media files from backend (assuming they are dynamic)
+backend/media/

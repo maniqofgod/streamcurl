@@ -3,12 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { goLiveStream, stopStream, getYouTubeStats, linkYoutube } from '../services/api';
 
 const StreamCard = ({ stream, onStreamUpdate, onDelete, viewMode }) => {
-    const { id, name, status, created_at, thumbnail_url, youtube_view_count, youtube_like_count, youtube_comment_count, youtube_live_viewers, started_at, duration_seconds, youtube_video_id } = stream;
+    const { id, name, status, created_at, thumbnail_url, started_at, duration_seconds, youtube_video_id } = stream;
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
     const [liveDuration, setLiveDuration] = useState('');
     const [isLinkingYoutube, setIsLinkingYoutube] = useState(false);
     const [youtubeIdToLink, setYoutubeIdToLink] = useState('');
+    const [youtubeStats, setYoutubeStats] = useState({
+        view_count: stream.youtube_view_count,
+        like_count: stream.youtube_like_count,
+        comment_count: stream.youtube_comment_count,
+        live_viewers: stream.youtube_live_viewers
+    });
 
     const formatDuration = (totalSeconds) => {
         if (isNaN(totalSeconds) || totalSeconds < 0) {
@@ -46,20 +52,18 @@ const StreamCard = ({ stream, onStreamUpdate, onDelete, viewMode }) => {
 
     useEffect(() => {
         let statsInterval;
-        if (status === 'LIVE' && stream.youtube_video_id) {
+        if (status === 'LIVE' && youtube_video_id) {
             const fetchStats = async () => {
                 try {
                     const updatedStats = await getYouTubeStats(id);
-                    if (onStreamUpdate) {
-                        onStreamUpdate(updatedStats);
-                    }
+                    setYoutubeStats(updatedStats);
                 } catch (error) {
                     console.error("Failed to fetch YouTube stats:", error);
                 }
             };
 
-            fetchStats(); // Fetch immediately on component mount
-            statsInterval = setInterval(fetchStats, 15000); // Then every 15 seconds
+            fetchStats();
+            statsInterval = setInterval(fetchStats, 15000);
         }
 
         return () => {
@@ -67,7 +71,7 @@ const StreamCard = ({ stream, onStreamUpdate, onDelete, viewMode }) => {
                 clearInterval(statsInterval);
             }
         };
-    }, [status, id, stream.youtube_video_id, onStreamUpdate]);
+    }, [status, id, youtube_video_id]);
 
     const handleAction = async (action) => {
         setIsLoading(true);
@@ -75,7 +79,7 @@ const StreamCard = ({ stream, onStreamUpdate, onDelete, viewMode }) => {
             let response;
             switch (action) {
                 case 'go-live':
-                    response = await goLiveStream(id);
+                    response = await goLiveStream(id, { live_platform: 'youtube' });
                     break;
                 case 'stop':
                     response = await stopStream(id);
@@ -155,7 +159,7 @@ const StreamCard = ({ stream, onStreamUpdate, onDelete, viewMode }) => {
                 break;
             case 'LIVE':
             case 'Running':
-                actions = ['stop', 'edit', 'delete'];
+                actions = ['stop'];
                 if (stream.youtube_video_id) {
                     actions.push('open_youtube');
                 } else {
@@ -193,7 +197,7 @@ const StreamCard = ({ stream, onStreamUpdate, onDelete, viewMode }) => {
     };
 
     const finalThumbnailUrl = getThumbnailUrl();
-    const hasStats = typeof youtube_view_count === 'number';
+    const hasStats = typeof youtubeStats.view_count === 'number';
     
     if (viewMode === 'list') {
         const displayDuration = status === 'LIVE' ? liveDuration : (duration_seconds ? formatDuration(duration_seconds) : null);
@@ -207,8 +211,8 @@ const StreamCard = ({ stream, onStreamUpdate, onDelete, viewMode }) => {
                     <p className="stream-date">Created: {created_at ? new Date(created_at).toLocaleString() : 'N/A'}</p>
                     {hasStats && (
                         <div className="youtube-stats-list">
-                            <span><i className="fas fa-eye"></i> {(youtube_view_count ?? 0).toLocaleString()}</span>
-                            <span><i className="fas fa-thumbs-up"></i> {(youtube_like_count ?? 0).toLocaleString()}</span>
+                            <span><i className="fas fa-eye"></i> {(youtubeStats.view_count ?? 0).toLocaleString()}</span>
+                            <span><i className="fas fa-thumbs-up"></i> {(youtubeStats.like_count ?? 0).toLocaleString()}</span>
                             
                         </div>
                     )}
@@ -285,8 +289,8 @@ const StreamCard = ({ stream, onStreamUpdate, onDelete, viewMode }) => {
                 )}
                 {hasStats && (
                     <div className="youtube-stats">
-                        <span title="Views"><i className="fas fa-eye"></i> {(youtube_view_count ?? 0).toLocaleString()}</span>
-                        <span title="Likes"><i className="fas fa-thumbs-up"></i> {(youtube_like_count ?? 0).toLocaleString()}</span>
+                        <span title="Views"><i className="fas fa-eye"></i> {(youtubeStats.view_count ?? 0).toLocaleString()}</span>
+                        <span title="Likes"><i className="fas fa-thumbs-up"></i> {(youtubeStats.like_count ?? 0).toLocaleString()}</span>
                         
                     </div>
                 )}

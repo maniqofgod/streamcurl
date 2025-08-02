@@ -1,108 +1,160 @@
-import React, { useState } from 'react';
-import * as api from '../../services/api';
+import React, { useState, useEffect } from 'react';
 import '../../css/modules/_modal.css';
+import * as api from '../../services/api';
 
-const VPSModal = ({ user, onClose, onVpsChange }) => {
-    const [newVps, setNewVps] = useState({ name: '', ip_address: '', port: 8001, api_key: '' });
+const VPSModal = ({ user, onClose, onVpsAdded, vpsToEdit, onVpsUpdated }) => {
+    const [vpsDetails, setVpsDetails] = useState({
+        name: '',
+        ip_address: '',
+        port: 8002,
+        api_key: ''
+    });
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const isEditMode = Boolean(vpsToEdit);
 
-    const handleNewVpsChange = (e) => {
+    useEffect(() => {
+        if (isEditMode) {
+            setVpsDetails({
+                name: vpsToEdit.name || '',
+                ip_address: vpsToEdit.ip_address || '',
+                port: vpsToEdit.port || 8002,
+                api_key: vpsToEdit.api_key || ''
+            });
+        }
+    }, [vpsToEdit, isEditMode]);
+
+    const installCommand = "curl -sL https://raw.githubusercontent.com/maniqofgod/vps_agent/main/install.sh | bash";
+
+    const handleChange = (e) => {
         const { name, value } = e.target;
-        setNewVps(prev => ({ ...prev, [name]: value }));
+        setVpsDetails(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleAddVps = async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!newVps.name || !newVps.ip_address || !newVps.api_key) {
-            setError('All fields are required.');
+        if (!vpsDetails.name || !vpsDetails.ip_address || !vpsDetails.port) {
+            setError('Name, IP Address, and Port are required.');
             return;
         }
+        if (!user || !user.id) {
+            setError('Cannot process VPS without a user context.');
+            return;
+        }
+        setError('');
+        setIsLoading(true);
+
         try {
-            await api.adminCreateVpsForUser(user.id, newVps);
-            setNewVps({ name: '', ip_address: '', port: 8001, api_key: '' });
-            setError('');
-            onVpsChange();
+            const payload = {
+                ...vpsDetails,
+                port: parseInt(vpsDetails.port, 10),
+                user_id: user.id
+            };
+
+            if (isEditMode) {
+                await api.updateVps(vpsToEdit.id, payload);
+                onVpsUpdated();
+            } else {
+                await api.createVps(payload);
+                onVpsAdded();
+            }
+            onClose();
         } catch (err) {
-            setError(err.response?.data?.detail || 'Failed to add VPS.');
-            console.error(err);
+            const errorMessage = err.response?.data?.detail || `Failed to ${isEditMode ? 'update' : 'add'} VPS worker.`;
+            setError(errorMessage);
+        } finally {
+            setIsLoading(false);
         }
     };
-
-    const handleDeleteVps = async (vpsId) => {
-        if (window.confirm('Are you sure you want to delete this VPS?')) {
-            try {
-                await api.adminDeleteVps(vpsId);
-                onVpsChange();
-            } catch (err) {
-                setError(err.response?.data?.detail || 'Failed to delete VPS.');
-                console.error(err);
-            }
-        }
+    
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(installCommand).then(() => {
+            alert('Command copied to clipboard!');
+        }, (err) => {
+            alert('Failed to copy command.');
+        });
     };
 
     return (
         <div className="modal-backdrop" onClick={onClose}>
             <div className="modal-content large" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
-                    <h2>Manage VPS for {user.username}</h2>
-                    <button onClick={onClose} className="close-btn">&times;</button>
+                    <h2>{isEditMode ? 'Edit' : 'Add New'} VPS Worker</h2>
+                    <button onClick={onClose} className="close-btn" disabled={isLoading}>&times;</button>
                 </div>
                 <div className="modal-body">
                     {error && <p className="error-message">{error}</p>}
                     
-                    <div className="vps-management-container">
-                        <div className="vps-panel">
-                            <h4>Add New VPS</h4>
-                            <form onSubmit={handleAddVps} className="vps-form-modal">
+                    {!isEditMode && (
+                        <>
+                            <h4>1. Install Agent on Your VPS</h4>
+                            <p>Run this command on your new VPS server to install the agent. It will display an API Key upon completion.</p>
+                            <div className="command-box">
+                                <code>{installCommand}</code>
+                                <button onClick={copyToClipboard} className="copy-btn">Copy</button>
+                            </div>
+                            <hr className="modal-divider" />
+                        </>
+                    )}
+
+                    <h4>{isEditMode ? 'VPS Worker Details' : '2. Add VPS Worker Details'}</h4>
+                    <form onSubmit={handleSubmit} className="vps-form-modal-unified">
+                        <fieldset disabled={isLoading}>
+                            <div className="form-group">
+                                <label htmlFor="name">Worker Name</label>
                                 <input
                                     type="text"
+                                    id="name"
                                     name="name"
-                                    placeholder="VPS Name"
-                                    value={newVps.name}
-                                    onChange={handleNewVpsChange}
+                                    placeholder="e.g., My First Worker"
+                                    value={vpsDetails.name}
+                                    onChange={handleChange}
                                     required
                                 />
+                            </div>
+                            <div className="form-group-inline">
+                                <div className="form-group">
+                                    <label htmlFor="ip_address">VPS IP Address</label>
+                                    <input
+                                        type="text"
+                                        id="ip_address"
+                                        name="ip_address"
+                                        placeholder="123.45.67.89"
+                                        value={vpsDetails.ip_address}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="port">Agent Port</label>
+                                    <input
+                                        type="number"
+                                        id="port"
+                                        name="port"
+                                        placeholder="8002"
+                                        value={vpsDetails.port}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="api_key">API Key {isEditMode && '(Leave blank to keep unchanged)'}</label>
                                 <input
                                     type="text"
-                                    name="ip_address"
-                                    placeholder="IP Address"
-                                    value={newVps.ip_address}
-                                    onChange={handleNewVpsChange}
-                                    required
-                                />
-                                <input
-                                    type="number"
-                                    name="port"
-                                    placeholder="Port"
-                                    value={newVps.port}
-                                    onChange={handleNewVpsChange}
-                                    required
-                                />
-                                <input
-                                    type="text"
+                                    id="api_key"
                                     name="api_key"
-                                    placeholder="API Key"
-                                    value={newVps.api_key}
-                                    onChange={handleNewVpsChange}
-                                    required
+                                    placeholder={isEditMode ? "Enter new API key if needed" : "API Key from Step 1"}
+                                    value={vpsDetails.api_key}
+                                    onChange={handleChange}
+                                    required={!isEditMode}
                                 />
-                                <button type="submit" className="add-btn-modal">Add VPS</button>
-                            </form>
-                        </div>
-                        <div className="vps-panel">
-                            <h4>My VPS List</h4>
-                            <ul className="vps-list-modal">
-                                {user.vps && user.vps.length > 0 ? user.vps.map(vps => (
-                                    <li key={vps.id}>
-                                        <span>{vps.name} ({vps.ip_address}:{vps.port})</span>
-                                        <button onClick={() => handleDeleteVps(vps.id)} className="delete-btn-modal">Delete</button>
-                                    </li>
-                                )) : (
-                                    <p>No VPS assigned to this user.</p>
-                                )}
-                            </ul>
-                        </div>
-                    </div>
+                            </div>
+                            <button type="submit" className="btn btn-primary" disabled={isLoading}>
+                                {isLoading ? (isEditMode ? 'Updating...' : 'Adding...') : (isEditMode ? 'Update Worker' : 'Add Worker')}
+                            </button>
+                        </fieldset>
+                    </form>
                 </div>
             </div>
         </div>

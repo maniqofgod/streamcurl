@@ -82,7 +82,7 @@ async def handle_auth_callback(request: Request, code: str = Query(...), db: Ses
         logger.error(f"Google Drive auth callback failed: {e}")
         raise HTTPException(status_code=500, detail=f"Authentication failed: {e}")
 
-@router.get("/status", dependencies=[Depends(get_current_admin_user)])
+@router.get("/status", dependencies=[Depends(get_current_user)])
 def get_gdrive_status(db: Session = Depends(get_db)):
     config = db.query(GoogleDriveConfig).first()
     if not config or not config.token:
@@ -342,14 +342,57 @@ async def admin_upload_to_user_drive(user_id: int, file: UploadFile = File(...),
 def hello_gdrive():
     return {"message": "Hello from GDrive router"}
 
+async def get_user_for_gdrive_stream(
+    request: Request,
+    internal_api_key: Optional[str] = Query(None),
+    user_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_for_streaming)
+) -> User:
+    """
+    Dependensi untuk mendapatkan pengguna target untuk streaming GDrive.
+    Memvalidasi baik melalui sesi pengguna yang diautentikasi atau kunci API internal.
+    """
+    # Opsi 1: Validasi menggunakan Kunci API Internal (untuk komunikasi antar layanan, misal: VPS ke Backend)
+    if internal_api_key:
+        expected_key = os.getenv("INTERNAL_AGENT_ACCESS_KEY", "a-very-secret-internal-key")
+        if internal_api_key == expected_key:
+            if user_id:
+                user = db.query(User).filter(User.id == user_id).first()
+                if user:
+                    return user
+            # Jika tidak ada user_id, coba gunakan pengguna superuser pertama sebagai fallback
+            # Ini asumsi yang masuk akal jika agen tidak meneruskan ID pengguna
+            super_user = db.query(User).filter(User.is_superuser == True).first()
+            if super_user:
+                return super_user
+            raise HTTPException(status_code=404, detail="A superuser is required for internal API access but none was found.")
+        else:
+            raise HTTPException(status_code=403, detail="Invalid internal API key.")
+
+    # Opsi 2: Validasi menggunakan sesi pengguna yang sudah ada (untuk akses dari frontend)
+    if current_user:
+        if user_id and current_user.id != user_id and not current_user.is_superuser:
+            raise HTTPException(status_code=403, detail="Not authorized to access this user's stream.")
+        
+        if user_id:
+            target_user = db.query(User).filter(User.id == user_id).first()
+            if not target_user:
+                raise HTTPException(status_code=404, detail=f"User with id {user_id} not found.")
+            return target_user
+        return current_user
+
+    raise HTTPException(status_code=401, detail="Authentication required.")
+
+
 @router.get("/stream/{file_id:path}")
 async def stream_gdrive_file(
     file_id: str, 
     request: Request, 
     db: Session = Depends(get_db), 
-    current_user: User = Depends(get_current_user_for_streaming)
+    target_user: User = Depends(get_user_for_gdrive_stream)
 ):
-    creds = await run_in_threadpool(gdrive_service.get_credentials, db, user=current_user)
+    creds = await run_in_threadpool(gdrive_service.get_credentials, db, user=target_user)
     if not creds or not creds.token:
         raise HTTPException(status_code=503, detail="Could not authenticate with Google Drive for streaming.")
 

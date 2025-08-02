@@ -30,7 +30,7 @@ const Sources = ({ sources, selectedSourceId, onSelectSource, onAddSource, onDel
             case 'video': return 'fas fa-video';
             case 'image': return 'fas fa-image';
             case 'audio': return 'fas fa-music';
-            
+            case 'browser': return 'fas fa-globe';
             case 'text': return 'fas fa-font';
             default: return 'fas fa-file';
         }

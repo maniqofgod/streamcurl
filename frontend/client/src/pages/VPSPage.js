@@ -1,239 +1,177 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import * as api from '../services/api';
+import LoadingSpinner from '../components/LoadingSpinner';
+import VPSModal from '../components/modals/VPSModal';
 import '../css/modules/_admin_page.css';
-import '../css/modules/_modal.css';
 
 const VPSPage = () => {
     const [vpsList, setVpsList] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [loading, setLoading] = useState(true);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [vpsToEdit, setVpsToEdit] = useState(null);
+    const [currentUser, setCurrentUser] = useState(null);
     const [error, setError] = useState('');
-    const [newVps, setNewVps] = useState({ name: '', ip_address: '', port: 8001, api_key: '' });
-    const [isInstallGuideOpen, setIsInstallGuideOpen] = useState(false);
-    const [guideLang, setGuideLang] = useState('id');
-    const [copySuccess, setCopySuccess] = useState('');
-    
-    const [editingVpsId, setEditingVpsId] = useState(null);
-    const [editingVpsData, setEditingVpsData] = useState({ api_key: '' });
-    const [testResult, setTestResult] = useState(null);
+    const [testLogs, setTestLogs] = useState({});
+    const [testingVpsId, setTestingVpsId] = useState(null);
+    const [managementOutput, setManagementOutput] = useState({});
+    const [managingVpsId, setManagingVpsId] = useState(null);
 
-    const installCommand = 'bash -c "$(wget -qO- https://raw.githubusercontent.com/maniqofgod/vps-agent/main/install.sh)"';
-
-    const copyToClipboard = (text) => {
-        navigator.clipboard.writeText(text).then(() => {
-            setCopySuccess('Tersalin!');
-            setTimeout(() => setCopySuccess(''), 2000);
-        }, () => {
-            setCopySuccess('Gagal menyalin!');
-            setTimeout(() => setCopySuccess(''), 2000);
-        });
-    };
-
-    const fetchUserVps = useCallback(async () => {
+    const fetchInitialData = useCallback(async () => {
         try {
-            setIsLoading(true);
-            const data = await api.readVpsList();
-            setVpsList(data);
-            setError('');
-        } catch (err) {
-            setError('Gagal mengambil daftar VPS Anda.');
-            console.error(err);
+            setLoading(true);
+            const user = await api.getCurrentUser();
+            setCurrentUser(user);
+            
+            const vpsData = await api.readVpsList();
+            setVpsList(vpsData);
+
+        } catch (error) {
+            console.error("Error fetching initial data:", error);
+            setError('Failed to load data. Please try again.');
+            setVpsList([]);
         } finally {
-            setIsLoading(false);
+            setLoading(false);
         }
     }, []);
 
     useEffect(() => {
-        fetchUserVps();
-    }, [fetchUserVps]);
+        fetchInitialData();
+    }, [fetchInitialData]);
 
-    const handleNewVpsChange = (e) => {
-        const { name, value, type } = e.target;
-        setNewVps(prev => ({ ...prev, [name]: type === 'number' ? parseInt(value, 10) : value }));
-    };
-
-    const handleAddVps = async (e) => {
-        e.preventDefault();
-        if (!newVps.name || !newVps.ip_address || !newVps.api_key) {
-            setError('Semua bidang wajib diisi.');
+    const handleOpenAddModal = () => {
+        if (!currentUser) {
+            alert("Cannot open modal: current user data is not loaded.");
             return;
         }
-        try {
-            await api.createVps(newVps);
-            setNewVps({ name: '', ip_address: '', port: 8001, api_key: '' });
-            setError('');
-            fetchUserVps();
-        } catch (err) {
-            setError(err.response?.data?.detail || 'Gagal menambahkan VPS.');
-            console.error(err);
-        }
+        setVpsToEdit(null);
+        setIsModalOpen(true);
     };
 
-    const handleDeleteVps = async (vpsId) => {
-        if (window.confirm('Apakah Anda yakin ingin menghapus VPS ini?')) {
+    const handleOpenEditModal = (vps) => {
+        if (!currentUser) {
+            alert("Cannot open modal: current user data is not loaded.");
+            return;
+        }
+        setVpsToEdit(vps);
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setVpsToEdit(null);
+    };
+
+    const handleDelete = async (vpsId) => {
+        if (window.confirm("Are you sure you want to delete this VPS?")) {
             try {
                 await api.deleteVps(vpsId);
-                fetchUserVps();
-            } catch (err) {
-                setError(err.response?.data?.detail || 'Gagal menghapus VPS.');
-                console.error(err);
+                fetchInitialData(); // Refresh data
+            } catch (error) {
+                alert("Failed to delete VPS.");
             }
         }
     };
 
-    const handleTestVps = async (vpsId) => {
-        setTestResult({ vpsId, loading: true });
+    const handleTestNetwork = async (vpsId) => {
+        setTestingVpsId(vpsId);
+        setTestLogs(prev => ({ ...prev, [vpsId]: "Testing network... please wait." }));
         try {
             const result = await api.testVpsConnection(vpsId);
-            setTestResult({ vpsId, result });
-        } catch (err) {
-            const errorDetail = err.response?.data?.detail || 'Failed to run test.';
-            setTestResult({ vpsId, error: errorDetail });
-            console.error(err);
+            const logOutput = `Network Test Result:\nStatus: ${result.connection.status}\nDetails: ${JSON.stringify(result.connection.details, null, 2)}`;
+            setTestLogs(prev => ({ ...prev, [vpsId]: logOutput }));
+        } catch (error) {
+            const errorMessage = error.response?.data?.detail || "Failed to test network.";
+            setTestLogs(prev => ({ ...prev, [vpsId]: `Network Test Failed: ${errorMessage}` }));
         }
     };
 
-    const handleEditClick = (vps) => {
-        setEditingVpsId(vps.id);
-        setEditingVpsData({ api_key: vps.api_key });
-    };
-
-    const handleEditChange = (e) => {
-        setEditingVpsData({ ...editingVpsData, [e.target.name]: e.target.value });
-    };
-
-    const handleUpdateVps = async (vpsId) => {
+    const handleTestStreaming = async (vpsId) => {
+        setTestingVpsId(vpsId);
+        setTestLogs(prev => ({ ...prev, [vpsId]: "Testing streaming capabilities... this may take a moment." }));
         try {
-            await api.updateVps(vpsId, editingVpsData);
-            setEditingVpsId(null);
-            fetchUserVps();
-        } catch (err) {
-            setError(err.response?.data?.detail || 'Gagal memperbarui VPS.');
-            console.error(err);
+            const result = await api.testVpsStreaming(vpsId);
+            const logOutput = `Streaming Test Result:\nStatus: ${result.details.status}\nReturn Code: ${result.details.return_code}\n\n--- Logs ---\n${result.details.logs}`;
+            setTestLogs(prev => ({ ...prev, [vpsId]: logOutput }));
+        } catch (error) {
+            const errorMessage = error.response?.data?.detail || "Failed to test streaming.";
+            setTestLogs(prev => ({ ...prev, [vpsId]: `Streaming Test Failed: ${errorMessage}` }));
         }
     };
 
-    const renderTestResult = () => {
-        if (!testResult) return null;
-        if (testResult.loading) return <p>Testing VPS...</p>;
-        if (testResult.error) return <p className="error">Error: {testResult.error}</p>;
-
-        const { connection, ffmpeg } = testResult.result;
-        return (
-            <div className="test-results" style={{ marginTop: '15px' }}>
-                <h4>Test Results for VPS ID: {testResult.vpsId}</h4>
-                <p><strong>Connection:</strong> {connection.status} - {typeof connection.details === 'object' ? JSON.stringify(connection.details) : connection.details}</p>
-                <p><strong>FFmpeg:</strong> {ffmpeg.status} - {typeof ffmpeg.details === 'object' ? JSON.stringify(ffmpeg.details) : ffmpeg.details}</p>
-            </div>
-        );
-    };
-
-    if (isLoading) {
-        return <div className="loading-container">Memuat Manajemen VPS...</div>;
-    }
-
-    const guideContent = {
-        id: {
-            title: "Panduan Instalasi Agen VPS",
-            p1: "Jalankan perintah tunggal ini di VPS baru (disarankan Ubuntu 20.04+):",
-            p2: "Setelah skrip selesai, itu akan menampilkan Kunci API. Gunakan informasi tersebut untuk mengisi formulir \"Tambah VPS Baru\" di sini."
-        },
-        en: {
-            title: "VPS Agent Installation Guide",
-            p1: "Run this single command on a new VPS (Ubuntu 20.04+ recommended):",
-            p2: "After the script finishes, it will display the API Key. Use that information to fill out the \"Add New VPS\" form here."
+    const handleManageCommand = async (vpsId, command) => {
+        setManagingVpsId(vpsId);
+        setManagementOutput(prev => ({ ...prev, [vpsId]: `Running ${command}...` }));
+        try {
+            // Perlu diketahui bahwa endpoint di backend mengharapkan objek, bukan hanya string
+            const result = await api.manageVpsAgent(vpsId, { command });
+            const outputText = typeof result.output === 'object' ? JSON.stringify(result.output, null, 2) : result.output;
+            setManagementOutput(prev => ({ ...prev, [vpsId]: outputText }));
+        } catch (error) {
+            const errorMessage = error.response?.data?.detail || `Failed to run command ${command}.`;
+            setManagementOutput(prev => ({ ...prev, [vpsId]: `Command Failed: ${errorMessage}` }));
         }
     };
 
     return (
         <div className="admin-page">
-            {isInstallGuideOpen && (
-                <div className="modal-backdrop" onClick={() => setIsInstallGuideOpen(false)}>
-                    <div className="modal-content large" onClick={e => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3 className="modal-title">{guideContent[guideLang].title}</h3>
-                            <div className="lang-toggle">
-                                <button onClick={() => setGuideLang('id')} className={guideLang === 'id' ? 'active' : ''}>ID</button>
-                                <button onClick={() => setGuideLang('en')} className={guideLang === 'en' ? 'active' : ''}>EN</button>
-                            </div>
-                            <button onClick={() => setIsInstallGuideOpen(false)} className="modal-close-btn">&times;</button>
-                        </div>
-                        <div className="modal-body">
-                            <p>{guideContent[guideLang].p1}</p>
-                            <div className="command-container">
-                                <pre><code>{installCommand}</code></pre>
-                                <button onClick={() => copyToClipboard(installCommand)} className="copy-btn">
-                                    {copySuccess || 'Salin'}
-                                </button>
-                            </div>
-                            <p>{guideContent[guideLang].p2}</p>
-                        </div>
-                    </div>
+            <h1 className="admin-title">Manage My VPS</h1>
+            
+            <div className="admin-card">
+                <div className="card-title">
+                    <button onClick={handleOpenAddModal} className="glass-button-small">Add New VPS</button>
                 </div>
-            )}
-
-            <h1 className="admin-title">My VPS Management</h1>
-            {error && <div className="admin-error">{error}</div>}
-            <div className="vps-page-container">
-                <div className="admin-card">
-                    <div className="card-title-container">
-                        <h2 className="card-title">Add New VPS</h2>
-                        <button onClick={() => setIsInstallGuideOpen(true)} className="glass-button-small">
-                            Show Install Guide
-                        </button>
-                    </div>
-                    <form onSubmit={handleAddVps} className="admin-form">
-                        <input type="text" name="name" placeholder="VPS Name" value={newVps.name} onChange={handleNewVpsChange} required />
-                        <input type="text" name="ip_address" placeholder="IP Address" value={newVps.ip_address} onChange={handleNewVpsChange} required />
-                        <input type="number" name="port" placeholder="Port" value={newVps.port} onChange={handleNewVpsChange} required />
-                        <input type="text" name="api_key" placeholder="API Key" value={newVps.api_key} onChange={handleNewVpsChange} required />
-                        <button type="submit" className="glass-button">Add VPS</button>
-                    </form>
-                    <div className="service-commands" style={{ marginTop: '20px' }}>
-                        <h3 className="card-subtitle">Perintah Manajemen Layanan</h3>
-                        <p>Gunakan perintah ini di terminal VPS Anda untuk mengelola agen (di dalam direktori `~/streamcurl-vps-agent`):</p>
-                        <ul>
-                            <li><strong>Periksa Status & Log:</strong> <code>docker-compose logs -f</code></li>
-                            <li><strong>Mulai Ulang Agen:</strong> <code>docker-compose restart</code></li>
-                            <li><strong>Hentikan Agen:</strong> <code>docker-compose down</code></li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div className="admin-card">
-                    <h2 className="card-title">My VPS List</h2>
-                    <ul className="secret-list">
-                        {vpsList.length > 0 ? vpsList.map(vps => (
-                            <li key={vps.id}>
-                                {editingVpsId === vps.id ? (
-                                    <div className="edit-vps-form">
-                                        <input
-                                            type="text"
-                                            name="api_key"
-                                            value={editingVpsData.api_key}
-                                            onChange={handleEditChange}
-                                            placeholder="New API Key"
-                                        />
-                                        <button onClick={() => handleUpdateVps(vps.id)} className="glass-button-small">Save</button>
-                                        <button onClick={() => setEditingVpsId(null)} className="glass-button-small cancel">Cancel</button>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <span>{vps.name} ({vps.ip_address}:{vps.port})</span>
-                                        <div className="vps-actions">
-                                            <button onClick={() => handleTestVps(vps.id)} className="glass-button-small">Test</button>
-                                            <button onClick={() => handleEditClick(vps)} className="glass-button-small">Edit</button>
-                                            <button onClick={() => handleDeleteVps(vps.id)} className="delete-btn">Delete</button>
+                
+                <div className="card-section">
+                    {loading ? (
+                        <LoadingSpinner />
+                    ) : error ? (
+                        <div className="error-message">{error}</div>
+                    ) : (
+                        <div className="user-list-container">
+                            {vpsList && vpsList.length > 0 ? (
+                                <div className="vps-cards-container">
+                                    {vpsList.map((vps) => (
+                                        <div className="vps-card" key={vps.id}>
+                                            <div className="vps-card-header">
+                                                <span className="vps-card-name">{vps.name} (ID: {vps.id})</span>
+                                                <span className="vps-card-ip">{vps.ip_address}:{vps.port}</span>
+                                            </div>
+                                            <div className="vps-card-actions">
+                                                <button onClick={() => handleOpenEditModal(vps)} className="action-btn">Edit</button>
+                                                <button onClick={() => handleManageCommand(vps.id, 'status')} className="action-btn">Status</button>
+                                                <button onClick={() => handleManageCommand(vps.id, 'logs')} className="action-btn">Logs</button>
+                                                <button onClick={() => handleManageCommand(vps.id, 'restart')} className="action-btn">Restart</button>
+                                                <button onClick={() => handleManageCommand(vps.id, 'stop')} className="action-btn delete-btn">Stop</button>
+                                                <button onClick={() => handleDelete(vps.id)} className="action-btn delete-btn">Delete</button>
+                                            </div>
+                                            {managingVpsId === vps.id && (
+                                                <div className="management-output">
+                                                    <pre>{managementOutput[vps.id]}</pre>
+                                                </div>
+                                            )}
                                         </div>
-                                    </>
-                                )}
-                            </li>
-                        )) : (
-                            <p>Anda belum menambahkan VPS.</p>
-                        )}
-                    </ul>
-                    {renderTestResult()}
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="no-data-message">
+                                    <p>No VPS workers found.</p>
+                                    <p>Click "Add New VPS" to get started.</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
+
+            {isModalOpen && (
+                <VPSModal
+                    user={currentUser}
+                    onClose={handleCloseModal}
+                    onVpsAdded={fetchInitialData}
+                    vpsToEdit={vpsToEdit}
+                    onVpsUpdated={fetchInitialData}
+                />
+            )}
         </div>
     );
 };

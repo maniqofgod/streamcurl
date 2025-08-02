@@ -8,15 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
-if not YOUTUBE_API_KEY:
-    logger.warning("YOUTUBE_API_KEY environment variable is not set. YouTube features will be disabled.")
-    youtube_service = None
-else:
-    try:
-        youtube_service = build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
-    except Exception as e:
-        logger.error(f"Failed to initialize YouTube service: {e}")
-        youtube_service = None
+
 
 def parse_iso8601_duration(duration_str: str) -> int:
     """
@@ -69,8 +61,13 @@ def get_video_stats(video_id: str) -> Optional[dict]:
     """
     Fetches video statistics, duration, and live viewer count from the YouTube Data API.
     """
-    if not youtube_service:
-        logger.error("YouTube service is not available. Cannot fetch video stats.")
+    if not YOUTUBE_API_KEY:
+        logger.error("YOUTUBE_API_KEY is not set. Cannot fetch video stats.")
+        return None
+    try:
+        youtube_service = build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
+    except Exception as e:
+        logger.error(f"Failed to initialize YouTube service for get_video_stats: {e}")
         return None
 
     try:
@@ -112,8 +109,13 @@ def get_live_broadcast_status(video_id: str) -> Optional[str]:
     """
     Fetches the live broadcast status of a YouTube video.
     """
-    if not youtube_service:
-        logger.error("YouTube service is not available. Cannot fetch broadcast status.")
+    if not YOUTUBE_API_KEY:
+        logger.error("YOUTUBE_API_KEY is not set. Cannot fetch broadcast status.")
+        return None
+    try:
+        youtube_service = build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
+    except Exception as e:
+        logger.error(f"Failed to initialize YouTube service for get_live_broadcast_status: {e}")
         return None
 
     try:

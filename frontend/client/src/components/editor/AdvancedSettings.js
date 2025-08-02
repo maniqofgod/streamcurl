@@ -1,6 +1,14 @@
 import React from 'react';
 
-const AdvancedSettings = ({ settings, setSettings, canvasAspectRatio, vpsList, selectedVpsId, onVpsChange, userRole }) => {
+const AdvancedSettings = ({
+    settings,
+    setSettings,
+    canvasAspectRatio,
+    vpsList,
+    selectedVpsId,
+    onVpsChange,
+    userRole
+}) => {
     const handleSettingsChange = (e) => {
         const { name, value } = e.target;
         setSettings(prev => ({ ...prev, [name]: value }));
@@ -8,24 +16,12 @@ const AdvancedSettings = ({ settings, setSettings, canvasAspectRatio, vpsList, s
 
     const handleVpsChange = (e) => {
         const { value } = e.target;
-        onVpsChange(value ? parseInt(value, 10) : null);
+        onVpsChange(value === '' ? null : parseInt(value, 10));
     };
 
     return (
         <div className="advanced-settings-panel">
             <h3>Advanced Settings</h3>
-            <div className="form-group">
-                <label htmlFor="vps-select">Worker Node (VPS)</label>
-                <select id="vps-select" value={selectedVpsId || ''} onChange={handleVpsChange}>
-                    {userRole === 'admin' && <option value="">Local Worker</option>}
-                    {vpsList && vpsList.map(vps => (
-                        <option key={vps.id} value={vps.id}>
-                            {vps.name} ({vps.ip_address})
-                        </option>
-                    ))}
-                    {vpsList && vpsList.length === 0 && userRole !== 'admin' && <option value="" disabled>No VPS available</option>}
-                </select>
-            </div>
             <div className="form-group">
                 <label htmlFor="resolution">Resolution</label>
                 <select id="resolution" name="resolution" value={settings.resolution} onChange={handleSettingsChange}>
@@ -74,6 +70,22 @@ const AdvancedSettings = ({ settings, setSettings, canvasAspectRatio, vpsList, s
                     <option value="192">192k</option>
                     <option value="160">160k</option>
                     <option value="128">128k</option>
+                </select>
+            </div>
+            <div className="form-group">
+                <label htmlFor="vps-select">Run on Worker (VPS)</label>
+                <select
+                    id="vps-select"
+                    name="vps_id"
+                    value={selectedVpsId || ''}
+                    onChange={handleVpsChange}
+                >
+                    <option value="">Run Locally {userRole !== 'admin' ? '(Admins Only)' : '(Default)'}</option>
+                    {vpsList && vpsList.map(vps => (
+                        <option key={vps.id} value={vps.id}>
+                            {vps.name} ({vps.ip_address})
+                        </option>
+                    ))}
                 </select>
             </div>
         </div>

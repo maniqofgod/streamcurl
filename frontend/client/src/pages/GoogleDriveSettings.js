@@ -40,11 +40,7 @@ const GoogleDriveSettings = () => {
             const blob = new Blob([credentialsJson], { type: 'application/json' });
             formData.append('file', blob, 'credentials.json');
 
-            await api.post('/v1/gdrive/save-credentials', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            await api.post('/api/v1/gdrive/save-credentials', formData);
             alert("Credentials saved. Please connect your account.");
             setCredentialsJson('');
             fetchStatus();

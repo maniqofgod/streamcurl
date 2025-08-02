@@ -73,16 +73,7 @@ services:
     networks:
       - streamcurl-net
 
-  vps_agent:
-    build:
-      context: ./vps-agent
-    ports:
-      - "8002:8001"
-    env_file:
-      - .env
-    restart: on-failure
-    networks:
-      - streamcurl-net
+  
 
 networks:
   streamcurl-net:

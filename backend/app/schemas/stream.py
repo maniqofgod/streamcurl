@@ -26,6 +26,16 @@ class VideoInPlaylist(BaseModel):
     effects: Dict[str, Any] = Field(default_factory=dict)
     chromaKey: Dict[str, Any] = Field(default_factory=dict)
 
+# Represents a single audio item
+class AudioInPlaylist(BaseModel):
+    id: str
+    display_name: str
+    filepath: str
+    duration: Optional[float] = None
+    loop: bool = False
+    storage_type: str = 'local'
+    gdrive_file_id: Optional[str] = None
+
 # Settings for individual sources
 class SourceSettings(BaseModel):
     id: str
@@ -36,7 +46,7 @@ class SourceSettings(BaseModel):
     image_items: Optional[List[ImageInSource]] = Field(default_factory=list, alias='items')
     playbackMode: Optional[str] = "individual"
     # Audio specific
-    audio_items: Optional[List[Dict[str, Any]]] = None # For audio lists
+    audio_items: Optional[List[AudioInPlaylist]] = None # For audio lists
     volume: Optional[float] = 1.0
     
     # Text specific
@@ -138,3 +148,7 @@ class StreamInfo(BaseModel):
 class StreamStatus(BaseModel):
     status: str
     progress: Optional[float] = 0.0
+
+class GoLivePayload(BaseModel):
+    live_platform: str = Field(..., description="The platform to go live on, e.g., 'youtube', 'facebook', 'twitch'")
+    vps_id: Optional[int] = Field(None, description="The ID of the VPS to run the stream on. If null, uses the stream's current VPS setting.")

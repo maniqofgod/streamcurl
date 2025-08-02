@@ -68,6 +68,9 @@
     margin-bottom: 1.2rem;
     font-size: 1.1rem;
     font-weight: 500;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .section-title {
@@ -126,7 +129,7 @@
 /* Table Styling */
 .user-list-container {
     overflow-x: auto;
-    margin-top: 2rem;
+    margin-top: 1rem;
 }
 
 .user-table {
@@ -139,16 +142,55 @@
     padding: 1.2rem 1.5rem;
     text-align: left;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: transparent;
 }
 
 .user-table th {
     font-weight: 600;
     color: #d1d5db;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.user-table tbody tr {
+    transition: background-color 0.3s ease;
+}
+
+.user-table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.user-table th:first-child, .user-table td:first-child {
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+}
+
+.user-table th:last-child, .user-table td:last-child {
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
 }
 
 .user-table tr:last-child td {
     border-bottom: none;
 }
+
+/* Log Viewer Styling */
+.log-viewer {
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.log-viewer pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: #e5e7eb;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
 
 /* Status Badge */
 .status-badge {
@@ -363,4 +405,104 @@
     font-family: 'Courier New', Courier, monospace;
     color: #a78bfa; /* A light purple to match the theme */
     border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.no-data-message {
+    text-align: center;
+    padding: 3rem;
+    color: #a0aec0;
+}
+.actions-cell .action-btn {
+    background-color: #4a4a4a;
+    color: white;
+    border: 1px solid #666;
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-radius: 4px;
+    margin-right: 5px;
+    margin-bottom: 5px;
+}
+
+.actions-cell .action-btn:hover {
+    background-color: #5a5a5a;
+}
+
+.actions-cell .action-btn.delete-btn {
+    background-color: #a03a3a;
+}
+
+.actions-cell .action-btn.delete-btn:hover {
+    background-color: #c04a4a;
+}
+
+.management-output {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #1e1e1e;
+    border: 1px solid #444;
+    border-radius: 4px;
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
+    color: #d4d4d4;
+    text-align: left;
+}
+.management-output-cell {
+    padding: 0 !important;
+    border-top: none !important;
+}
+.vps-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.vps-card {
+    background-color: #2a2a38;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.vps-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.vps-card-name {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #e0e0e0;
+}
+
+.vps-card-ip {
+    font-family: 'Courier New', Courier, monospace;
+    background-color: #1e1e28;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.vps-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.management-output pre {
+    white-space: pre-wrap;       /* CSS3 */
+    white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+    white-space: -pre-wrap;      /* Opera 4-6 */
+    white-space: -o-pre-wrap;    /* Opera 7 */
+    word-wrap: break-word;       /* Internet Explorer 5.5+ */
 }

@@ -42,16 +42,18 @@ const Dashboard = () => {
     const { user: currentUser } = useOutletContext();
     const [dashboardData, setDashboardData] = useState(null);
     const [vpsList, setVpsList] = useState([]);
-    const [selectedVpsId, setSelectedVpsId] = useState('');
+    const [selectedVpsId, setSelectedVpsId] = useState('local'); // Default to 'local'
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const fetchDashboardData = useCallback(async () => {
+    const fetchDashboardData = useCallback(async (vpsId) => {
         if (!currentUser) return;
         setLoading(true);
         setError(null);
         try {
-            const data = await getDashboardData(selectedVpsId || null);
+            // Use 'null' for 'local' server as expected by the backend
+            const apiVpsId = vpsId === 'local' ? null : vpsId;
+            const data = await getDashboardData(apiVpsId);
             setDashboardData(data);
         } catch (err) {
             setError('Failed to fetch dashboard data.');
@@ -59,30 +61,38 @@ const Dashboard = () => {
         } finally {
             setLoading(false);
         }
-    }, [currentUser, selectedVpsId]);
+    }, [currentUser]);
 
     useEffect(() => {
         const fetchInitialData = async () => {
             if (!currentUser) return;
+            setLoading(true);
             try {
                 const vpsData = currentUser.role === 'admin' 
                     ? await adminReadVpsList() 
                     : await readVpsList();
-                setVpsList(vpsData);
-                if (vpsData.length > 0) {
-                    setSelectedVpsId(vpsData[0].id);
+                
+                if (Array.isArray(vpsData)) {
+                    setVpsList(vpsData);
                 }
+                // Initial data fetch for the default selected VPS
+                fetchDashboardData('local');
+
             } catch (err) {
-                setError('Failed to fetch initial data.');
+                setError('Failed to fetch initial VPS list.');
                 console.error(err);
+            } finally {
+                setLoading(false);
             }
         };
         fetchInitialData();
-    }, [currentUser]);
+    }, [currentUser, fetchDashboardData]);
 
-    useEffect(() => {
-        fetchDashboardData();
-    }, [fetchDashboardData]);
+    const handleVpsChange = (e) => {
+        const newVpsId = e.target.value;
+        setSelectedVpsId(newVpsId);
+        fetchDashboardData(newVpsId);
+    };
 
     if (loading && !dashboardData) {
         return <div className="dashboard-container">Loading...</div>;
@@ -96,7 +106,7 @@ const Dashboard = () => {
         return <div className="dashboard-container">No data available.</div>;
     }
 
-    const { vps_stats, gdrive_stats, stream_stats, recent_streams, admin_stats } = dashboardData;
+    const { vps_stats = {}, gdrive_stats = {}, stream_stats = {}, recent_streams = [], admin_stats = {} } = dashboardData;
 
     return (
         <div className="dashboard-v2">
@@ -104,10 +114,9 @@ const Dashboard = () => {
                 <select 
                     className="vps-selector" 
                     value={selectedVpsId} 
-                    onChange={(e) => setSelectedVpsId(e.target.value)}
-                    disabled={vpsList.length === 0}
+                    onChange={handleVpsChange}
                 >
-                    <option value="">{currentUser?.role === 'admin' ? 'Local Server' : 'Select a VPS'}</option>
+                    <option value="local">Local Server</option>
                     {vpsList.map(vps => (
                         <option key={vps.id} value={vps.id}>{vps.name} ({vps.ip_address})</option>
                     ))}

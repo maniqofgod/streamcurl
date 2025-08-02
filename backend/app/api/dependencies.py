@@ -18,6 +18,10 @@ def get_db():
     finally:
         db.close()
 
+# Create a separate, non-generator dependency for WebSocket usage
+def get_db_session():
+    return session.SessionLocal()
+
 async def get_current_user(request: Request, db: Session = Depends(get_db)):
     token = request.cookies.get("access_token")
     if not token:
@@ -45,7 +49,7 @@ async def get_current_user(request: Request, db: Session = Depends(get_db)):
     return user
 
 def get_current_admin_user(current_user: models.User = Depends(get_current_user)):
-    if not current_user.is_superuser:
+    if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized for this resource")
     return current_user
 
@@ -86,10 +90,7 @@ async def get_current_user_for_streaming(
     if token is None:
         token = request.cookies.get("access_token")
     if token is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-        )
+        return None
     
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -108,28 +109,13 @@ async def get_current_user_for_streaming(
         raise credentials_exception
     return user
 
-async def get_current_user_for_websocket(
+async def get_token_for_websocket(
     websocket: WebSocket,
-    token: Optional[str] = Query(None, alias="token"),
-    db: Session = Depends(get_db)
-):
-    auth_token = token
-    if not auth_token:
-        auth_token = websocket.cookies.get("access_token")
+    token: Optional[str] = Query(None, alias="token")
+) -> Optional[str]:
+    """Dependency to extract token from query param or cookie for a WebSocket connection."""
+    if token:
+        return token
+    return websocket.cookies.get("access_token")
 
-    if not auth_token:
-        raise WebSocketDisconnect(code=status.WS_1008_POLICY_VIOLATION, reason="Authentication token missing")
 
-    try:
-        payload = security.decode_access_token(auth_token)
-        username: str = payload.get("sub")
-        if username is None:
-            raise WebSocketDisconnect(code=status.WS_1008_POLICY_VIOLATION, reason="Invalid token payload")
-    except JWTError:
-        raise WebSocketDisconnect(code=status.WS_1008_POLICY_VIOLATION, reason="Could not validate credentials")
-
-    user = security.get_user(db, username=username)
-    if user is None:
-        raise WebSocketDisconnect(code=status.WS_1008_POLICY_VIOLATION, reason="User not found")
-        
-    return user

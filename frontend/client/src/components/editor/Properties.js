@@ -322,6 +322,40 @@ const TextSourceProperties = ({ source, onUpdateSourceProperties }) => {
     );
 };
 
+const BrowserSourceProperties = ({ source, onUpdateSourceProperties }) => {
+    return (
+        <div className="browser-source-properties">
+            <div className="property-group">
+                <label htmlFor="browser-url">URL</label>
+                <input
+                    type="text"
+                    id="browser-url"
+                    value={source.url}
+                    onChange={(e) => onUpdateSourceProperties(source.id, { url: e.target.value })}
+                />
+            </div>
+            <div className="property-group">
+                <label htmlFor="browser-width">Width</label>
+                <input
+                    type="number"
+                    id="browser-width"
+                    value={source.width}
+                    onChange={(e) => onUpdateSourceProperties(source.id, { width: parseInt(e.target.value, 10) })}
+                />
+            </div>
+            <div className="property-group">
+                <label htmlFor="browser-height">Height</label>
+                <input
+                    type="number"
+                    id="browser-height"
+                    value={source.height}
+                    onChange={(e) => onUpdateSourceProperties(source.id, { height: parseInt(e.target.value, 10) })}
+                />
+            </div>
+        </div>
+    );
+};
+
 
 const VideoPlaylistProperties = ({ 
     source, 
@@ -389,7 +423,7 @@ const VideoPlaylistProperties = ({
                                        <input 
                                             type="checkbox" 
                                             id={`loop-${video.id}`} 
-                                            checked={video.loop} 
+                                            checked={video.loop || false} 
                                             onChange={(e) => onUpdateVideoProperties(source.id, video.id, { loop: e.target.checked })}
                                         />
                                         <label htmlFor={`loop-${video.id}`}>Loop</label>
@@ -543,6 +577,11 @@ const Properties = ({
                         />;
             case 'text':
                 return <TextSourceProperties
+                            source={selectedSource}
+                            onUpdateSourceProperties={onUpdateSourceProperties}
+                        />;
+            case 'browser':
+                return <BrowserSourceProperties
                             source={selectedSource}
                             onUpdateSourceProperties={onUpdateSourceProperties}
                         />;

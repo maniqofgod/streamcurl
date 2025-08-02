@@ -80,6 +80,7 @@ class Stream(Base):
     youtube_key = Column(String(255), nullable=True)
     facebook_key = Column(String(255), nullable=True)
     twitch_key = Column(String(255), nullable=True)
+    live_platform = Column(String(50), nullable=True)  # e.g., 'youtube', 'facebook', 'twitch'
     status = Column(String(20), nullable=False, default="idle")
     current_pid = Column(Integer)
     duration_seconds = Column(Integer, default=0)
@@ -110,9 +111,7 @@ class VPS(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     name = Column(String(255), nullable=False)
     ip_address = Column(String(45), nullable=False)
-    port = Column(Integer, nullable=False, default=8001)
+    port = Column(Integer, nullable=False, default=8002)
     api_key = Column(String(255), nullable=False)
-    cpu_cores = Column(Integer, nullable=False, default=1)
-    ram_gb = Column(Integer, nullable=False, default=2)
     user = relationship("User", back_populates="vps")
     streams = relationship("Stream", back_populates="vps")

@@ -18,7 +18,7 @@ PUBLIC_BACKEND_URL = os.getenv("PUBLIC_BACKEND_URL", "http://localhost:8001")
 
 from app.api.dependencies import get_db, get_current_user, csrf_protect
 from app.db.models import Stream, User, VPS
-from app.schemas.stream import StreamCreate, StreamUpdate, Stream as StreamSchema, StreamInfo
+from app.schemas.stream import StreamCreate, StreamUpdate, Stream as StreamSchema, StreamInfo, GoLivePayload
 from app.schemas.youtube import YouTubeLinkPayload
 
 from app.services.youtube_service import get_video_stats
@@ -71,12 +71,7 @@ def get_streams(request: Request, db: Session = Depends(get_db), current_user: U
     base_url = PUBLIC_BACKEND_URL
     streams_with_hls = []
     for stream in streams:
-        if stream.settings and 'sources' in stream.settings:
-            for source in stream.settings['sources']:
-                if source.get('type') == 'image' and 'image_items' in source:
-                    source['items'] = source.get('image_items')
-                if source.get('type') == 'audio' and 'audio_items' in source:
-                    source['items'] = source.get('audio_items')
+        
         
         stream_info = StreamInfo.from_orm(stream)
         if stream.status in ["Previewing", "LIVE", "Running"]:
@@ -101,12 +96,7 @@ def get_stream(request: Request, stream_id: int, db: Session = Depends(get_db), 
     
     
     
-    if stream.settings and 'sources' in stream.settings:
-        for source in stream.settings['sources']:
-            if source.get('type') == 'image' and 'image_items' in source:
-                source['items'] = source.get('image_items')
-            if source.get('type') == 'audio' and 'audio_items' in source:
-                source['items'] = source.get('audio_items')
+    
 
     return stream
 from app.schemas.stream import StreamStatus
@@ -337,7 +327,7 @@ def preview_stream(request: Request, stream_id: int, db: Session = Depends(get_d
     return {"message": message, "task_id": task.id, "hls_url": hls_url_relative}
 
 @router.post("/{stream_id}/go-live", response_model=StreamSchema, dependencies=[Depends(csrf_protect)])
-def go_live_stream(request: Request, stream_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def go_live_stream(request: Request, stream_id: int, payload: GoLivePayload, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     stream = db.query(Stream).filter(Stream.id == stream_id).first()
     if not stream:
         raise HTTPException(status_code=404, detail="Stream not found")
@@ -347,6 +337,17 @@ def go_live_stream(request: Request, stream_id: int, db: Session = Depends(get_d
     if not stream.settings or not stream.settings.get('sources'):
         raise HTTPException(status_code=400, detail="Cannot start a stream with no sources.")
 
+    # Update VPS ID from payload if provided
+    if payload.vps_id is not None:
+        vps = db.query(VPS).filter(VPS.id == payload.vps_id)
+        if current_user.role != "admin":
+            vps = vps.filter(VPS.user_id == current_user.id)
+        
+        if not vps.first():
+            raise HTTPException(status_code=404, detail=f"VPS with ID {payload.vps_id} not found or you don't have permission.")
+        
+        stream.vps_id = payload.vps_id
+
     if stream.youtube_video_id:
         logger.info(f"Restarting stream {stream_id}. Clearing old YouTube link: {stream.youtube_video_id}")
         stream.youtube_video_id = None
@@ -354,6 +355,7 @@ def go_live_stream(request: Request, stream_id: int, db: Session = Depends(get_d
 
     stop_existing_task(stream_id)
 
+    stream.live_platform = payload.live_platform
     stream.status = "Processing"
     stream.started_at = datetime.datetime.now(datetime.timezone.utc)
     db.commit()

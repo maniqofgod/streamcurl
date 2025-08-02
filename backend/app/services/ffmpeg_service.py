@@ -242,7 +242,7 @@ def get_video_metadata(file_path: str) -> dict:
         logger.error(f"Error getting metadata for {file_path}: {e}")
         return {}
 
-def _get_input_path(db: Session, item: dict, is_vps_stream: bool = False, public_url: Optional[str] = None) -> Union[str, None]:
+def _get_input_path(db: Session, stream: Stream, item: dict, is_vps_stream: bool = False, public_url: Optional[str] = None) -> Union[str, None]:
     """
     Determines the correct input path for an FFmpeg input.
     For VPS streams, it generates an HTTP URL. Otherwise, it provides a local file path.
@@ -251,7 +251,10 @@ def _get_input_path(db: Session, item: dict, is_vps_stream: bool = False, public
     filepath = item.get('filepath')
 
     # Always handle GDrive streams first by pointing to the API endpoint
-    if storage_type == 'gdrive':
+    # Also check if filepath indicates GDrive, even if storage_type is not set
+    is_gdrive = storage_type == 'gdrive' or (filepath and 'gdrive/' in filepath)
+
+    if is_gdrive:
         file_id = item.get('gdrive_file_id')
         if not file_id and filepath and (filepath.startswith('gdrive://') or filepath.startswith('gdrive/')):
              # Extract file_id from various gdrive path formats
@@ -263,7 +266,8 @@ def _get_input_path(db: Session, item: dict, is_vps_stream: bool = False, public
             # Ensure the base_url does not have a trailing slash
             if base_url.endswith('/'):
                 base_url = base_url[:-1]
-            return f"{base_url}/api/v1/gdrive/stream/{file_id}"
+            internal_api_key = os.getenv("INTERNAL_AGENT_ACCESS_KEY", "a-very-secret-internal-key")
+            return f"{base_url}/api/v1/gdrive/stream/{file_id}?internal_api_key={internal_api_key}&user_id={stream.user_id}"
         else:
             logger.warning(f"GDrive item has no usable file ID: {item}")
             return None
@@ -301,7 +305,7 @@ def _get_input_path(db: Session, item: dict, is_vps_stream: bool = False, public
     return None
 
 
-def _build_base_command(stream: Stream, settings: Dict, is_thumbnail: bool = False, is_vps_stream: bool = False, public_url: Optional[str] = None) -> Tuple[list[str], Stream]:
+def build_ffmpeg_command(stream: Stream, settings: Dict, is_thumbnail: bool = False, is_vps_stream: bool = False, public_url: Optional[str] = None) -> Tuple[list[str], Stream]:
     """
     Builds the base FFmpeg command with all inputs and filter_complex parts.
     Uses the provided settings dictionary directly.
@@ -316,11 +320,7 @@ def _build_base_command(stream: Stream, settings: Dict, is_thumbnail: bool = Fal
         filter_file_path = get_filter_file_path(stream.id)
 
         command = ['ffmpeg', '-nostdin']
-        # Add headers for VPS streams
-        if is_vps_stream:
-            internal_api_key = os.getenv("INTERNAL_AGENT_ACCESS_KEY", "a-very-secret-internal-key")
-            command.extend(['-headers', f'X-Internal-API-Key: {internal_api_key}\r\n'])
-
+        
         filter_complex_parts = []
         audio_mappings = []
         ffmpeg_input_count = 0
@@ -330,9 +330,19 @@ def _build_base_command(stream: Stream, settings: Dict, is_thumbnail: bool = Fal
         output_w, output_h = int(output_resolution[0]), int(output_resolution[1])
         fps = int(advanced.get('video_fps', 30))
 
-        base_w, base_h = 1280, 720
+        aspect_ratio = settings.get('aspectRatio', '16:9')
+        if aspect_ratio == '9:16':
+            base_w, base_h = 720, 1280
+        else:
+            base_w, base_h = 1280, 720
+        
+        # Ensure output resolution matches aspect ratio if not explicitly set
+        if f"{output_w}x{output_h}" not in [f"{base_w}x{base_h}", f"{base_h}x{base_w}"]:
+            logger.warning(f"Output resolution {output_w}x{output_h} does not match aspect ratio {aspect_ratio}. Adjusting to {base_w}x{base_h}.")
+            output_w, output_h = base_w, base_h
         scale_x = output_w / base_w
         scale_y = output_h / base_h
+        logger.info(f"Aspect Ratio: {aspect_ratio}, Base Res: {base_w}x{base_h}, Output Res: {output_w}x{output_h}, Scale: {scale_x}, {scale_y}")
         
         filter_complex_parts.append(f"color=s={output_w}x{output_h}:c=black:r={fps}[base]")
         last_video_stream = "[base]"
@@ -343,7 +353,7 @@ def _build_base_command(stream: Stream, settings: Dict, is_thumbnail: bool = Fal
 
             if source_type == 'video':
                 for video_item in source.get('playlist', []):
-                    input_path = _get_input_path(db, video_item, is_vps_stream, public_url)
+                    input_path = _get_input_path(db, stream, video_item, is_vps_stream, public_url)
                     if input_path:
                         loop_option = ['-stream_loop', '-1'] if video_item.get('loop') else []
                         command.extend(loop_option + ['-i', input_path])
@@ -377,8 +387,8 @@ def _build_base_command(stream: Stream, settings: Dict, is_thumbnail: bool = Fal
                         ffmpeg_input_count += 1
 
             elif source_type == 'image':
-                for image_item in source.get('image_items', source.get('items', [])):
-                    input_path = _get_input_path(db, image_item, is_vps_stream, public_url)
+                for image_item in source.get('items', []):
+                    input_path = _get_input_path(db, stream, image_item, is_vps_stream, public_url)
                     if input_path:
                         command.extend(['-loop', '1', '-r', str(fps), '-i', input_path])
                         transform = image_item.get('transform', {})
@@ -408,7 +418,7 @@ def _build_base_command(stream: Stream, settings: Dict, is_thumbnail: bool = Fal
 
             elif source_type == 'audio':
                 for audio_item in source.get('audio_items', []):
-                    input_path = _get_input_path(db, audio_item, is_vps_stream, public_url)
+                    input_path = _get_input_path(db, stream, audio_item, is_vps_stream, public_url)
                     if input_path:
                         loop_option = ['-stream_loop', '-1'] if audio_item.get('loop') else []
                         command.extend(loop_option + ['-i', input_path])
@@ -446,15 +456,26 @@ def _build_base_command(stream: Stream, settings: Dict, is_thumbnail: bool = Fal
 
 def build_ffmpeg_go_live_command(stream: Stream, settings: Dict, is_vps_stream: bool = False, public_url: Optional[str] = None) -> list[str]:
     logger.info(f"--- Building FFmpeg GO LIVE command for stream_id: {stream.id} ---")
-    command, stream = _build_base_command(stream, settings, is_vps_stream=is_vps_stream, public_url=public_url)
+    command, stream = build_ffmpeg_command(stream, settings, is_vps_stream=is_vps_stream, public_url=public_url)
     
     rtmp_url = None
-    if stream.youtube_key:
+    platform = stream.live_platform
+
+    if platform == 'youtube' and stream.youtube_key:
         rtmp_url = f"rtmps://a.rtmp.youtube.com/live2/{stream.youtube_key}"
-    elif stream.facebook_key:
+    elif platform == 'facebook' and stream.facebook_key:
         rtmp_url = stream.facebook_key
-    elif stream.twitch_key:
+    elif platform == 'twitch' and stream.twitch_key:
         rtmp_url = f"rtmp://live.twitch.tv/app/{stream.twitch_key}"
+    # Fallback for streams created before this change
+    elif not platform:
+        logger.warning(f"Stream {stream.id} has no live_platform set. Falling back to old key detection logic.")
+        if stream.youtube_key:
+            rtmp_url = f"rtmps://a.rtmp.youtube.com/live2/{stream.youtube_key}"
+        elif stream.facebook_key:
+            rtmp_url = stream.facebook_key
+        elif stream.twitch_key:
+            rtmp_url = f"rtmp://live.twitch.tv/app/{stream.twitch_key}"
     
     if not rtmp_url:
         raise Exception("No valid stream key found for going live.")
@@ -487,7 +508,7 @@ def build_ffmpeg_go_live_command(stream: Stream, settings: Dict, is_vps_stream: 
 
 def build_ffmpeg_preview_command(stream: Stream, settings: Dict, is_vps_stream: bool = False, public_url: Optional[str] = None) -> list[str]:
     logger.info(f"--- Building FFmpeg PREVIEW command for stream_id: {stream.id} ---")
-    command, stream = _build_base_command(stream, settings, is_vps_stream=is_vps_stream, public_url=public_url)
+    command, stream = build_ffmpeg_command(stream, settings, is_vps_stream=is_vps_stream, public_url=public_url)
     
     hls_output_dir = f"/app/media/hls/{stream.id}"
     
@@ -523,14 +544,17 @@ def build_ffmpeg_preview_command(stream: Stream, settings: Dict, is_vps_stream: 
 
 def build_ffmpeg_thumbnail_command(stream: Stream, settings: Dict, output_path: str, is_vps_stream: bool = False, public_url: Optional[str] = None) -> list[str]:
     logger.info(f"--- Building FFmpeg THUMBNAIL command for stream_id: {stream.id} ---")
-    command, _ = _build_base_command(stream, settings, is_thumbnail=True, is_vps_stream=is_vps_stream, public_url=public_url)
+    command, _ = build_ffmpeg_command(stream, settings, is_thumbnail=True, is_vps_stream=is_vps_stream, public_url=public_url)
     
+    # Gunakan placeholder untuk output path jika ini adalah stream VPS, jika tidak gunakan path yang diberikan
+    final_output_path = "%%OUTPUT_PATH%%" if is_vps_stream else output_path
+
     command.extend([
         '-map', '[final_v]',
         '-ss', '00:00:01',
         '-vframes', '1',
         '-y',
-        output_path
+        final_output_path
     ])
     
     logger.info(f"Generated FFmpeg THUMBNAIL command: {' '.join(command)}")

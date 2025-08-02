@@ -47,7 +47,6 @@ def generate_stream_thumbnail(stream_id: int):
             return
 
         
-
         # Prepare media, which will also set the "Downloading" status
         new_settings, temp_dir = prepare_stream_media(stream_id)
 
@@ -69,21 +68,48 @@ def generate_stream_thumbnail(stream_id: int):
             public_url=PUBLIC_BACKEND_URL if is_vps_stream else None
         )
         
-        logger.info(f"Executing thumbnail command for stream {stream_id}: {' '.join(command)}")
-        process = subprocess.run(command, capture_output=True, text=True)
+        if is_vps_stream:
+            logger.info(f"Delegating thumbnail generation for stream {stream_id} to VPS agent.")
+            try:
+                agent_url = f"http://{stream.vps.ip_address}:8002/agent/v1/thumbnail/generate"
+                headers = {"x-api-key": stream.vps.api_key}
+                
+                # Buat URL callback untuk agen mengunggah thumbnail
+                clean_base_url = PUBLIC_BACKEND_URL.rstrip('/')
+                upload_url = f"{clean_base_url}/api/v1/agent-callbacks/upload-thumbnail/{stream_id}"
+                
+                payload = {
+                    "stream_id": stream_id,
+                    "ffmpeg_command": command,
+                    "upload_url": upload_url,
+                    "callback_api_key": AGENT_CALLBACK_API_KEY
+                }
+                
+                response = requests.post(agent_url, json=payload, headers=headers, timeout=300) # Timeout lebih lama untuk thumbnail (300s)
+                response.raise_for_status()
+                
+                logger.info(f"Successfully delegated thumbnail task for stream {stream_id} to VPS. Response: {response.json()}")
+                # Status akan diupdate oleh agen, jadi kita tidak perlu melakukannya di sini
+            except requests.exceptions.RequestException as e:
+                error_message = f"Could not connect to VPS agent for thumbnail generation: {e}"
+                logger.error(f"Error for stream {stream_id}: {error_message}")
+                raise Exception(error_message)
+        else:
+            logger.info(f"Executing thumbnail command locally for stream {stream_id}: {' '.join(command)}")
+            process = subprocess.run(command, capture_output=True, text=True)
 
-        if process.returncode != 0:
-            logger.error(f"Failed to generate canvas thumbnail for stream {stream_id}: {process.stderr}")
-            raise Exception(f"FFmpeg failed for thumbnail generation: {process.stderr}")
+            if process.returncode != 0:
+                logger.error(f"Failed to generate canvas thumbnail for stream {stream_id}: {process.stderr}")
+                raise Exception(f"FFmpeg failed for thumbnail generation: {process.stderr}")
 
-        # Hapus thumbnail lama jika ada
-        if stream.thumbnail_url and os.path.exists(f"/app{stream.thumbnail_url}"):
-            if os.path.basename(stream.thumbnail_url) != thumbnail_filename:
-                 os.remove(f"/app{stream.thumbnail_url}")
+            # Hapus thumbnail lama jika ada
+            if stream.thumbnail_url and os.path.exists(f"/app{stream.thumbnail_url}"):
+                if os.path.basename(stream.thumbnail_url) != thumbnail_filename:
+                     os.remove(f"/app{stream.thumbnail_url}")
 
-        stream.thumbnail_url = f"media/thumbnails/{thumbnail_filename}"
-        db.commit()
-        logger.info(f"Canvas thumbnail created and saved for stream {stream_id} at {thumbnail_path}")
+            stream.thumbnail_url = f"/media/thumbnails/{thumbnail_filename}"
+            db.commit()
+            logger.info(f"Canvas thumbnail created and saved for stream {stream_id} at {thumbnail_path}")
         update_stream_status(db, stream_id, "Idle", "Thumbnail updated.")
 
     except Exception as e:
@@ -122,8 +148,9 @@ def update_stream_status(db: Session, stream_id: int, status: str, details: str 
 def stop_stream_on_vps(vps: VPS, stream_id: int):
     """Kirim permintaan untuk menghentikan stream pada agen VPS."""
     try:
-        url = f"http://{vps.ip_address}:{vps.port}/stream/stop"
-        headers = {"Authorization": f"Bearer {vps.api_key}"}
+        # Menggunakan port 8002 secara hardcode sesuai definisi agen
+        url = f"http://{vps.ip_address}:8002/agent/v1/stream/stop"
+        headers = {"x-api-key": vps.api_key} # Menggunakan header X-Api-Key
         payload = {"stream_id": stream_id}
         
         logger.info(f"Mengirim permintaan stop ke {url} untuk stream {stream_id}")
@@ -149,18 +176,13 @@ def stop_vps_stream(stream_id: int):
 
         stop_stream_on_vps(stream.vps, stream.id)
         
-        # Update status to STOPPED first
-        update_stream_status(db, stream_id, "STOPPED", "Stream stopped via VPS agent.")
-        
-        # Wait for a few seconds
-        time.sleep(3)
-        
-        # Finally, update status to Idle
-        update_stream_status(db, stream_id, "Idle", "Stream is now idle.")
+        # Status akan diupdate oleh agen melalui callback, jadi kita tidak set status di sini lagi.
+        # Cukup log bahwa permintaan telah dikirim.
+        logger.info(f"Perintah stop untuk stream {stream_id} telah dikirim ke agen VPS.")
 
     except Exception as e:
         logger.error(f"Gagal dalam tugas stop_vps_stream untuk stream {stream_id}: {e}")
-        update_stream_status(db, stream_id, "Error", f"Failed to stop on VPS: {e}")
+        update_stream_status(db, stream_id, "Error", f"Failed to send stop command to VPS: {e}")
     finally:
         db.close()
 
@@ -194,7 +216,7 @@ def prepare_stream_media(stream_id: int):
             if source.get('type') == 'video':
                 items_to_process = source.get('playlist', [])
             elif source.get('type') == 'image':
-                items_to_process = source.get('image_items', source.get('items', []))
+                items_to_process = source.get('items', [])
             elif source.get('type') == 'audio':
                 items_to_process = source.get('audio_items', source.get('items', []))
 
@@ -285,7 +307,12 @@ def stream_video(self, stream_id: int, is_preview: bool = False, public_url: str
 
         if is_preview:
             # Preview on VPS is not supported, always run locally.
-            command = build_ffmpeg_preview_command(stream, settings=new_settings, is_vps_stream=False)
+            command = build_ffmpeg_preview_command(
+                stream, 
+                settings=new_settings, 
+                is_vps_stream=is_vps_stream, 
+                public_url=effective_base_url
+            )
             update_stream_status(db, stream_id, "Previewing")
         else:
             command = build_ffmpeg_go_live_command(
@@ -301,22 +328,17 @@ def stream_video(self, stream_id: int, is_preview: bool = False, public_url: str
             logger.info(f"Stream {stream_id} is targeted for VPS {stream.vps.name} ({stream.vps.ip_address}). Delegating to agent.")
             
             try:
-                stop_stream_on_vps(stream.vps, stream.id)
-                time.sleep(2)
-            except Exception as e:
-                logger.warning(f"Could not stop pre-existing stream {stream_id} (this can be ignored): {e}")
-            
-            try:
-                agent_url = f"http://{stream.vps.ip_address}:{stream.vps.port}/stream/start"
-                headers = {"Authorization": f"Bearer {stream.vps.api_key}"}
+                # Menggunakan port 8002 dan header yang benar
+                agent_url = f"http://{stream.vps.ip_address}:8002/agent/v1/stream/start"
+                headers = {"x-api-key": stream.vps.api_key}
                 
                 clean_base_url = effective_base_url.rstrip('/')
                 callback_url = f"{clean_base_url}/api/v1/agent-callbacks/status-update"
                 logger.info(f"Constructed callback URL for agent: {callback_url}")
                 
                 payload = {
-                    "ffmpeg_command": command,
                     "stream_id": stream_id,
+                    "ffmpeg_command": command,
                     "callback_url": callback_url,
                     "callback_api_key": AGENT_CALLBACK_API_KEY
                 }
@@ -324,6 +346,7 @@ def stream_video(self, stream_id: int, is_preview: bool = False, public_url: str
                 response.raise_for_status()
                 
                 logger.info(f"Successfully delegated stream {stream_id} to VPS agent. Response: {response.json()}")
+                update_stream_status(db, stream_id, "Delegated", f"Stream delegated to VPS: {stream.vps.name}")
                 
             except requests.exceptions.RequestException as e:
                 error_message = f"Could not connect to VPS agent: {e}"
@@ -379,7 +402,8 @@ def stream_video(self, stream_id: int, is_preview: bool = False, public_url: str
             shutil.rmtree(temp_dir)
 
         if 'stream' in locals() and stream:
-            if final_status != "Idle" or not stream.vps_id:
+            # Jangan update status jika stream berjalan di VPS, karena status akan dihandle oleh callback
+            if final_status != "Idle" and not stream.vps_id:
                 update_stream_status(db, stream_id, final_status, error_message)
         elif final_status == "Error":
             update_stream_status(db, stream_id, final_status, error_message)
@@ -411,7 +435,7 @@ def monitor_youtube_stream(stream_id: int):
 
         while True:
             current_stream = db.query(Stream).filter(Stream.id == stream_id).first()
-            if not current_stream or current_stream.status not in ["LIVE", "Processing...", "Starting..."]:
+            if not current_stream or current_stream.status not in ["LIVE", "Processing...", "Starting...", "Delegated"]:
                 logger.info(f"Monitor: Stream {stream_id} is no longer active in DB (status: {current_stream.status if current_stream else 'Not Found'}). Exiting monitor.")
                 break
 

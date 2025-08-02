@@ -4,7 +4,7 @@ import uuid
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.api.dependencies import get_db, get_current_user, csrf_protect
 from app.schemas import user as user_schema
@@ -78,7 +78,7 @@ def create_user(user: user_schema.UserCreate, db: Session = Depends(get_db)):
 
 @router.get("/users/", response_model=List[user_schema.User], dependencies=[Depends(get_current_admin_user)])
 def read_users(db: Session = Depends(get_db), skip: int = 0, limit: int = 100):
-    return db.query(models.User).offset(skip).limit(limit).all()
+    return db.query(models.User).options(joinedload(models.User.vps)).offset(skip).limit(limit).all()
 
 @router.put("/users/{user_id}", response_model=user_schema.User, dependencies=[Depends(get_current_admin_user), Depends(csrf_protect)])
 def update_user(user_id: int, user_update: user_schema.UserUpdate, db: Session = Depends(get_db)):

@@ -1,6 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import * as api from '../../services/api';
 
 const StreamDetails = ({ stream, setStream, onLinkYouTube }) => {
+    const [vpsList, setVpsList] = useState([]);
+
+    useEffect(() => {
+        const fetchVpsList = async () => {
+            try {
+                const data = await api.readVpsList();
+                if (Array.isArray(data)) {
+                    setVpsList(data);
+                } else {
+                    console.error("API response for VPS list is not an array:", data);
+                    setVpsList([]); // Default to an empty array
+                }
+            } catch (error) {
+                console.error("Failed to fetch VPS list", error);
+                setVpsList([]); // Also set to empty on error
+            }
+        };
+        fetchVpsList();
+    }, []);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setStream(prevStream => ({

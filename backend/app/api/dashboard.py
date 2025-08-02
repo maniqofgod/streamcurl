@@ -61,7 +61,7 @@ def get_dashboard_data(
 
         if vps:
             try:
-                agent_url = f"http://{vps.ip_address}:{vps.port}/stats"
+                agent_url = f"http://{vps.ip_address}:{vps.port}/agent/v1/stats"
                 headers = {"X-API-Key": vps.api_key}
                 response = requests.get(agent_url, headers=headers, timeout=5)
                 response.raise_for_status()

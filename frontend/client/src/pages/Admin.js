@@ -270,7 +270,7 @@ const handleDeleteUser = async (userId) => {
             
             <ApiSettings />
 
-            {isVpsModalOpen && <VPSModal user={selectedUserForVps} onClose={closeVpsModal} onVpsChange={fetchAdminData} />}
+            {isVpsModalOpen && <VPSModal user={selectedUserForVps} onClose={closeVpsModal} onVpsAdded={fetchAdminData} />}
             {isEditUserModalOpen && <EditUserModal user={selectedUserForEdit} onClose={closeEditUserModal} onUserUpdate={fetchAdminData} />}
         </div>
     );

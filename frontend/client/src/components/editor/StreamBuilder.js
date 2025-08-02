@@ -47,7 +47,7 @@ const BASE_RESOLUTIONS = {
 
 
 const StreamBuilder = ({ streamId }) => {
-    const [stream, setStream] = useState({ name: '' });
+    const [stream, setStream] = useState({ name: '', vps_id: null });
     const [schedule, setSchedule] = useState({
         start_option: 'immediately',
         start_date: null,
@@ -96,7 +96,6 @@ const StreamBuilder = ({ streamId }) => {
     const audioIntervalRef = useRef(null);
 
     const [vpsList, setVpsList] = useState([]);
-    const [selectedVpsId, setSelectedVpsId] = useState(null);
     const [userRole, setUserRole] = useState(null);
 
     const [streamStatus, setStreamStatus] = useState('Idle');
@@ -118,8 +117,8 @@ const StreamBuilder = ({ streamId }) => {
 
                 if (streamId) {
                     const fetchedStream = await getStream(streamId);
-                    setStream(fetchedStream); // Set the whole stream object
-                    setSelectedVpsId(fetchedStream.vps_id);
+                    
+                    setStream(fetchedStream);
                     setStreamStatus(fetchedStream.status);
                     
                     if (fetchedStream.settings) {
@@ -168,16 +167,20 @@ const StreamBuilder = ({ streamId }) => {
                             };
 
                             if (newSource.type === 'video') {
-                                newSource.playlist = processItems(newSource.playlist || newSource.video_items || []);
+                                const videoItems = newSource.playlist || newSource.video_items || [];
+                                newSource.playlist = processItems(videoItems).map(video => ({
+                                    ...video,
+                                    loop: video.loop || false
+                                }));
                                 delete newSource.video_items;
                             } else if (newSource.type === 'image') {
                                 newSource.items = processItems(newSource.items || newSource.image_items || []);
                                 delete newSource.image_items;
                             } else if (newSource.type === 'audio') {
-                                const audioItems = newSource.items || newSource.audio_items || [];
+                                const audioItems = newSource.audio_items || newSource.items || [];
                                 newSource.items = processItems(audioItems).map(audio => ({
                                     ...audio,
-                                    loop: audio.loop || false
+                                    loop: !!audio.loop
                                 }));
                                 delete newSource.audio_items;
                             } else if (newSource.type === 'text') {
@@ -243,6 +246,14 @@ const StreamBuilder = ({ streamId }) => {
                 resizeObserver.unobserve(parentElement);
             }
         };
+    }, [aspectRatio]);
+
+    useEffect(() => {
+        const newResolution = BASE_RESOLUTIONS[aspectRatio];
+        setAdvancedSettings(prev => ({
+            ...prev,
+            resolution: `${newResolution.width}x${newResolution.height}`
+        }));
     }, [aspectRatio]);
 
     const selectedSource = (sources || []).find(s => s.id === selectedSourceId);
@@ -940,10 +951,7 @@ const StreamBuilder = ({ streamId }) => {
         const streamData = {
             name: stream.name,
             description: stream.description,
-            youtube_video_url: stream.youtube_video_url,
-            youtube_view_count: stream.youtube_view_count,
-            youtube_like_count: stream.youtube_like_count,
-            youtube_comment_count: stream.youtube_comment_count,
+            youtube_video_id: stream.youtube_video_id,
             settings: {
                 sources: sanitizedSources,
                 aspectRatio: aspectRatio,
@@ -951,8 +959,9 @@ const StreamBuilder = ({ streamId }) => {
                 platforms: platforms,
                 advanced: advancedSettings,
             },
-            vps_id: selectedVpsId,
+            vps_id: stream.vps_id,
         };
+        
 
         setIsLoading(true);
         try {
@@ -1023,17 +1032,16 @@ const StreamBuilder = ({ streamId }) => {
             alert("Please save the stream first before linking a YouTube video.");
             return;
         }
-        if (!stream.youtube_url) {
-            alert("Please enter a YouTube URL.");
+        if (!stream.youtube_video_id) {
+            alert("Please enter a YouTube Video ID.");
             return;
         }
 
         setIsLoading(true);
         try {
-            const updatedStream = await linkYoutube(streamId, { youtube_url: stream.youtube_url });
+            const updatedStream = await linkYoutube(streamId, { youtube_video_id: stream.youtube_video_id });
             alert(`Successfully linked YouTube video! Views: ${updatedStream.youtube_view_count}, Likes: ${updatedStream.youtube_like_count}`);
-            // Optionally, you can update parts of your state with the new stats
-            // For example: setStream(prev => ({ ...prev, ...updatedStream }));
+            setStream(prev => ({ ...prev, ...updatedStream }));
         } catch (error) {
             console.error("Failed to link YouTube video:", error);
             const errorMessage = error.response?.data?.detail || "An unknown error occurred.";
@@ -1046,37 +1054,29 @@ const StreamBuilder = ({ streamId }) => {
     const getMediaUrl = (item) => {
         if (!item) return '';
     
-        // Handle GDrive items first, as they are the most common case
         if (item.storage_type === 'gdrive') {
             const fileId = item.gdrive_file_id || item.id;
             if (!fileId) return '';
     
-            // Videos and Audios use the stream endpoint
             if (item.type === 'video' || item.type === 'audio') {
                 return `/api/v1/gdrive/stream/${fileId}`;
             }
-            // Images use the thumbnail endpoint
             if (item.type === 'image') {
                 return `/api/v1/gdrive/thumbnail/${fileId}`;
             }
         }
     
-        // Handle local files (which might include legacy gdrive paths)
         if (item.filepath) {
-            // This will handle paths like `gdrive/stream/FILE_ID` or `gdrive/thumbnail/FILE_ID`
             if (item.filepath.startsWith('gdrive/')) {
                 return `/api/v1/${item.filepath}`;
             }
-            // Handle other local file paths if necessary
-            // return `/api/v1/${item.filepath}`; // Example
         }
     
-        // Fallback for external URLs (e.g., from SoundCloud or YouTube)
         if (item.thumbnail_url) {
             return item.thumbnail_url;
         }
     
-        return ''; // Return empty string if no valid URL can be constructed
+        return '';
     };
     const { scale } = canvasDimensions;
 
@@ -1332,8 +1332,8 @@ const StreamBuilder = ({ streamId }) => {
                     setSettings={setAdvancedSettings} 
                     canvasAspectRatio={aspectRatio}
                     vpsList={vpsList}
-                    selectedVpsId={selectedVpsId}
-                    onVpsChange={setSelectedVpsId}
+                    selectedVpsId={stream.vps_id}
+                    onVpsChange={(vpsId) => setStream(prev => ({ ...prev, vps_id: vpsId }))}
                     userRole={userRole}
                 />
             </div>

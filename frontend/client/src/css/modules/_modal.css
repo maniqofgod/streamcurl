@@ -456,3 +456,71 @@ hr {
     background-color: rgba(255, 255, 255, 0.2);
     border-color: rgba(255, 255, 255, 0.4);
 }
+
+.vps-actions .manage-btn-modal {
+    background-color: #4a4a4a;
+    color: white;
+    border: 1px solid #666;
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-radius: 4px;
+    margin-right: 5px;
+}
+
+.vps-actions .manage-btn-modal:hover {
+    background-color: #5a5a5a;
+}
+
+.vps-actions .manage-btn-modal.delete {
+    background-color: #a03a3a;
+}
+
+.vps-actions .manage-btn-modal.delete:hover {
+    background-color: #c04a4a;
+}
+
+.vps-actions .manage-btn-modal:disabled {
+    background-color: #333;
+    color: #777;
+    cursor: not-allowed;
+}
+
+.management-output {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #1e1e1e;
+    border: 1px solid #444;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
+    color: #d4d4d4;
+}
+
+.management-output-modal {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #1e1e1e;
+    border: 1px solid #444;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
+    color: #d4d4d4;
+}
+
+.management-output-modal pre {
+    white-space: pre-wrap;       /* CSS3 */
+    white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+    white-space: -pre-wrap;      /* Opera 4-6 */
+    white-space: -o-pre-wrap;    /* Opera 7 */
+    word-wrap: break-word;       /* Internet Explorer 5.5+ */
+}
